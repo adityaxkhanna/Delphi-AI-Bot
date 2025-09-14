@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
@@ -10,23 +9,6 @@ const Dashboard = ({ children }) => {
     () => typeof window !== 'undefined' && window.innerWidth <= 768
   );
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  // THEME: init from localStorage or OS preference
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'light';
-    const saved = localStorage.getItem('theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-  });
-
-  // Apply theme to <body data-theme="...">
-  useEffect(() => {
-    document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
 
   // Handle responsive sidebar
   useEffect(() => {
@@ -85,15 +67,6 @@ const Dashboard = ({ children }) => {
           <div className="header-content">
             <h1>Delphi AI Bot</h1>
           </div>
-
-          {/* Theme toggle */}
-          <button
-            className="theme-toggle"
-            onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
-          </button>
 
           <button
             className="sign-out-button"

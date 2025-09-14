@@ -1,71 +1,99 @@
-/* ===== Dashboard.css (theme-aware) ===== */
-
 .dashboard {
   display: flex;
   height: 100vh;
-  background: var(--app-bg);
+  background: var(--brand-bg);
   font-family: 'Poppins', sans-serif;
 }
 
 /* Sidebar */
 .sidebar {
   width: 250px;
-  background: var(--sidebar-bg);
+  background: #ffffff;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   padding: 1rem;
   box-shadow: 2px 0 8px rgba(0,0,0,0.04);
 }
-.sidebar .logo { font-size: 1.4rem; font-weight: 700; color: var(--brand-maroon); margin-bottom: 2rem; }
-.sidebar .nav-link{
-  display:flex; align-items:center; padding:.75rem 1rem; margin-bottom:.5rem;
-  border-radius:12px; color: var(--text-2); text-decoration:none;
-  transition: background .2s ease, color .2s ease;
+.sidebar .logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--brand-maroon);
+  margin-bottom: 2rem;
 }
-.sidebar .nav-link:hover{ background: var(--brand-maroon-100); color: var(--brand-maroon); }
-.sidebar .nav-link.active{ background: var(--brand-maroon); color:#fff; font-weight:600; }
+.sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 12px;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.sidebar .nav-link:hover {
+  background: var(--brand-maroon-100);
+  color: var(--brand-maroon);
+}
+.sidebar .nav-link.active {
+  background: var(--brand-maroon);
+  color: #fff;
+  font-weight: 600;
+}
 
-/* Content shell */
-.dashboard-content{ flex:1; display:flex; flex-direction:column; background: var(--app-bg); }
+/* Dashboard content */
+.dashboard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg,#faf5f7,#ffffff);
+}
 
 /* Header */
-.dashboard-header{
-  height:70px; background: var(--brand-maroon); color:#fff;
-  display:flex; align-items:center; justify-content:space-between; padding:0 2rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+.dashboard-header {
+  height: 70px;
+  background: var(--brand-maroon);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
 }
-.dashboard-header h1{ font-size:1.4rem; font-weight:600; margin:0; }
-.sidebar-toggle{
-  display:flex; align-items:center; justify-content:center; width:40px; height:40px;
-  border:none; background:transparent; border-radius:8px; cursor:pointer; color:#fff; opacity:.9;
+.dashboard-header h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
 }
-.sidebar-toggle:hover{ opacity:1; }
-
-.theme-toggle, .sign-out-button{
-  background: var(--surface);
+.sign-out-button {
+  background: #fff;
   color: var(--brand-maroon);
-  padding: .5rem 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: none;
   font-weight: 600;
   cursor: pointer;
-  transition: background .2s ease;
+  transition: background 0.2s ease;
 }
-.theme-toggle{ margin-right: 1rem; }
-.theme-toggle:hover, .sign-out-button:hover{ background: var(--brand-maroon-100); }
+.sign-out-button:hover {
+  background: var(--brand-maroon-100);
+}
 
-/* Main */
-.dashboard-main{ flex:1; padding:2rem; overflow-y:auto; }
-.dashboard-card{
-  background: var(--surface); border-radius: 18px; box-shadow: var(--shadow);
-  padding: 1.5rem; margin-bottom: 1.5rem; color: var(--text-1);
+/* Main content */
+.dashboard-main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
 }
-.dashboard-card h2{ margin:0 0 1rem; font-size:1.25rem; font-weight:600; color: var(--brand-maroon); }
-
-/* Mobile overlay for sidebar */
-.sidebar-overlay{
-  position:fixed; inset:0; background: rgba(15,23,42,.45); backdrop-filter: blur(2px);
-  z-index:900; animation: fadeIn .25s ease;
+.dashboard-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
-@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+.dashboard-card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--brand-maroon);
+}
