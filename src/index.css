@@ -1,15 +1,58 @@
+
+
+/* === Delphi Theme Global Styles === */
+:root {
+  --brand-bg: #f7f5f7;
+  --brand-surface: #ffffff;
+  --brand-maroon: #7a0e2a;
+  --brand-maroon-700: #5e0b20;
+  --brand-maroon-100: #fde9ef;
+
+  --text-1: #0f172a;
+  --text-2: #475569;
+
+  --border: #e5e7eb;
+  --radius: 18px;
+  --space: 16px;
+  --shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+}
+
 * {
   box-sizing: border-box;
 }
 
-body {
+/* body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
+
+  background: radial-gradient(
+      1200px 800px at 15% -10%,
+      var(--brand-maroon-100),
+      transparent
+    ),
+    var(--brand-bg);
+  color: var(--text-1);
+} */
+ body {
+  margin: 0;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Muted red background */
+  background: linear-gradient(135deg, #fbe9eb, #f7d7dc);
+  color: var(--text-1);
+}
+
+
+#root {
+  height: 100vh;
 }
 
 code {
@@ -17,6 +60,36 @@ code {
     monospace;
 }
 
-#root {
-  height: 100vh;
+:root {
+  --brand-bg: #f7f5f7;
+  --brand-surface: #ffffff;
+  --brand-maroon: #7a0e2a;
+  --brand-maroon-700: #5e0b20;
+  --brand-maroon-100: #fde9ef;
+
+  --text-1: #0f172a;
+  --text-2: #475569;
+
+  --border: #e5e7eb;
+  --radius: 18px;
+  --space: 16px;
+  --shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+}
+
+/* === Dark Theme Overrides === */
+body.dark {
+  --brand-bg: #111827;       /* overall background */
+  --brand-surface: #1e293b;  /* panels/cards */
+  --brand-maroon: #d93f5c;   /* accent red */
+  --brand-maroon-700: #b83248;
+  --brand-maroon-100: #4b1c27;
+
+  --text-1: #f9fafb;
+  --text-2: #cbd5e1;
+
+  --border: #334155;
+  --shadow: 0 6px 20px rgba(0,0,0,0.5);
+
+  background: var(--brand-bg);
+  color: var(--text-1);
 }

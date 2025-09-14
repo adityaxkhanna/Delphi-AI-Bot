@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
@@ -5,9 +6,29 @@ import './Dashboard.css';
 
 const Dashboard = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= 768
+  );
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // THEME: init from localStorage or OS preference
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  });
+
+  // Apply theme to <body data-theme="...">
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  // Handle responsive sidebar
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
@@ -17,10 +38,12 @@ const Dashboard = ({ children }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   const navigate = useNavigate();
 
   const toggleSidebar = () => {
-    if (isMobile) setMobileSidebarOpen(o => !o); else setSidebarCollapsed(c => !c);
+    if (isMobile) setMobileSidebarOpen(o => !o);
+    else setSidebarCollapsed(c => !c);
   };
 
   const handleSignOut = () => {
@@ -36,12 +59,18 @@ const Dashboard = ({ children }) => {
         isMobile={isMobile}
         onToggle={toggleSidebar}
       />
+
       {isMobile && mobileSidebarOpen && (
-        <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} aria-hidden="true" />
+        <div
+          className="sidebar-overlay"
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
       )}
+
       <div className={`dashboard-content ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <header className="dashboard-header">
-          <button 
+          <button
             className="sidebar-toggle"
             onClick={toggleSidebar}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -52,10 +81,21 @@ const Dashboard = ({ children }) => {
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
+
           <div className="header-content">
             <h1>Delphi AI Bot</h1>
           </div>
-          <button 
+
+          {/* Theme toggle */}
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
+          </button>
+
+          <button
             className="sign-out-button"
             onClick={handleSignOut}
             aria-label="Sign out"
@@ -68,9 +108,8 @@ const Dashboard = ({ children }) => {
             <span>Sign Out</span>
           </button>
         </header>
-        <main className="dashboard-main">
-          {children}
-        </main>
+
+        <main className="dashboard-main">{children}</main>
       </div>
     </div>
   );
