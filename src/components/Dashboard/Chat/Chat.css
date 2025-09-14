@@ -233,3 +233,31 @@
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
 }
+
+/* Small laptops: slightly denser layout */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .chat-header h2 {
+    font-size: 1.375rem; /* tighten heading */
+  }
+  .bubble {
+    font-size: 0.95rem;
+    padding: 0.625rem 0.875rem;
+  }
+  .chat-input textarea {
+    min-height: 48px;
+  }
+}
+
+/* Wide desktops: more breathing room */
+@media (min-width: 1440px) {
+  .chat-header h2 {
+    font-size: 1.625rem;
+  }
+  .bubble {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  .chat-body {
+    padding: 1.25rem;
+  }
+}
