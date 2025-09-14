@@ -2,10 +2,11 @@
 
 // export default Dashboard;
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import './Dashboard.css';
 import SearchBar from "./SearchBar.jsx";
+import RecentActivity from "./RecentActivity.jsx";
 
 const Dashboard = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -25,6 +26,7 @@ const Dashboard = ({ children }) => {
   }, []);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleSidebar = () => {
     if (isMobile) setMobileSidebarOpen(o => !o);
@@ -97,6 +99,20 @@ const Dashboard = ({ children }) => {
           <div className="main-content">
             {children}
           </div>
+
+          {/* Show RecentActivity only on Chat screen */}
+          {location.pathname.startsWith("/dashboard/chat") && (
+            <RecentActivity
+              chats={[
+                { id: 1, title: "Iron eligibility trends", when: "2h ago" },
+                { id: 2, title: "Plasma donation data", when: "Yesterday" }
+              ]}
+              docs={[
+                { id: "d1", name: "Donor Policy Overview.pdf", when: "2d ago" },
+                { id: "d2", name: "Consent Guidelines 2024", when: "5d ago" }
+              ]}
+            />
+          )}
         </main>
       </div>
     </div>
