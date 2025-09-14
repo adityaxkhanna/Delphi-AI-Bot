@@ -1,0 +1,7 @@
+.kpi-cards { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.kpi-card {
+  flex: 1 1 220px; padding: 16px; background: var(--brand-surface);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.kpi-value { font-size: 1.4rem; font-weight: 700; color: var(--brand-maroon); }
+.kpi-label { font-size: 0.9rem; color: var(--text-2); }
