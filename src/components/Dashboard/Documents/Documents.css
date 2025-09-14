@@ -127,6 +127,28 @@
 /* ==========================================
    Responsive Adjustments
    ========================================== */
+
+/* Responsiveness for wider screens 
+/* Base for 13–14" laptops: 3 cards per row */
+.documents-grid {
+  /* keep your existing gap/margins above; we only set columns here */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Wider desktops (≥1440px): 4 cards per row */
+@media (min-width: 1440px) {
+  .documents-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Very large monitors (≥1720px): a little extra spacing */
+@media (min-width: 1720px) {
+  .documents-grid {
+    gap: 20px;
+  }
+}
+
 @media (max-width: 1200px) {
   .documents-boundary { padding: 0 1.25rem; }
 }
