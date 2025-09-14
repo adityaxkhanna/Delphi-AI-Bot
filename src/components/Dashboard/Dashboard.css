@@ -120,6 +120,50 @@
 }
 
 /* Responsive design */
+/* Small laptops (1280–1439px): tighter density */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .dashboard-header {
+    padding: 0 1.25rem; /* reduce side padding */
+    height: 64px;       /* slightly shorter header */
+  }
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+  .dashboard-main {
+    padding: 1.5rem;    /* less vertical padding */
+    gap: 12px;          /* closer cards */
+  }
+  .dashboard-card {
+    padding: 1.25rem;   /* tighter card padding */
+  }
+}
+
+/* Wide desktops (≥1440px): more breathing room */
+@media (min-width: 1440px) {
+  .dashboard-header {
+    padding: 0 2rem;    /* increase header spacing */
+    height: 76px;
+  }
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+  .dashboard-main {
+    padding: 2.5rem;
+    gap: 20px;
+  }
+  .dashboard-card {
+    padding: 1.75rem;
+  }
+}
+
+/* Ultra-wide monitors (≥1720px): limit line length */
+@media (min-width: 1720px) {
+  .main-content {
+    max-width: 1600px;
+    margin-inline: auto;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-content {
     margin-left: 0;
