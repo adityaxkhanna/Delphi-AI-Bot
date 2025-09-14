@@ -42,6 +42,9 @@
   padding: 12px 14px;
   line-height: 1.5;
   max-width: 70%;
+  position: relative;
+  overflow-wrap: anywhere;   /* keep long links inside bubble */
+  word-break: break-word;
 }
 .message-row.user .bubble {
   background: var(--brand-maroon);
@@ -57,12 +60,29 @@
   margin-right: auto;
 }
 
-/* Summary & Citations */
+/* Summary & Citations (inside bubble) */
 .assistant-summary { font-weight: 600; color: var(--text-1); margin-bottom: 0.25rem; }
-.citations { margin-top: 0.5rem; border-top: 1px dashed var(--border); padding-top: 0.5rem; }
-.citations-label { font-size: 0.875rem; color: var(--text-2); }
-.citations a { color: #0ea5e9; text-decoration: none; }
-.citations a:hover { text-decoration: underline; }
+
+.bubble .citations {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.bubble .citations-label {
+  font-size: 0.875rem;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.bubble .citations ul {
+  margin: 4px 0 0;
+  padding-left: 18px;       /* bullets indentation */
+}
+.bubble .citations li { list-style: disc; }
+.bubble .citations a {
+  color: var(--brand-maroon);
+  text-decoration: none;
+}
+.bubble .citations a:hover { text-decoration: underline; }
 
 /* Feedback */
 .feedback-row { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
