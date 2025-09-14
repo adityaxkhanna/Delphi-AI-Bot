@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './Documents.css';
 
-
 import { alpha, styled } from '@mui/material/styles';
 import {
   Box, Stack, Typography, Button, IconButton, TextField, Chip, Tooltip, Divider,
@@ -28,6 +27,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { AnimatePresence, motion } from 'framer-motion';
+import PaginationBar from './PaginationBar';
+import { usePage } from './usePage';
 
 // Mock async functions simulating S3 latency
 const mockDelay = (ms) => new Promise(r => setTimeout(r, ms));
@@ -36,6 +37,19 @@ const seedFiles = [
   { key: 'Enterprise_Strategy_Overview.pdf', size: 842311, uploadedAt: Date.now() - 3600_000 * 5, status: 'ready', embeddings: 1532 },
   { key: 'Q2_Financial_Report.pdf', size: 1320311, uploadedAt: Date.now() - 3600_000 * 24 * 2, status: 'ready', embeddings: 2048 },
   { key: 'Employee_Handbook.pdf', size: 523001, uploadedAt: Date.now() - 3600_000 * 12, status: 'processing', embeddings: 0 },
+  { key: 'Marketing_Plan_2024.pdf', size: 780000, uploadedAt: Date.now() - 3600_000 * 10, status: 'ready', embeddings: 1200 },
+  { key: 'Legal_Contract_Draft.pdf', size: 950000, uploadedAt: Date.now() - 3600_000 * 8, status: 'processing', embeddings: 0 },
+  { key: 'Product_Roadmap_Q3.pdf', size: 610000, uploadedAt: Date.now() - 3600_000 * 6, status: 'ready', embeddings: 900 },
+  { key: 'HR_Policy_Update.pdf', size: 480000, uploadedAt: Date.now() - 3600_000 * 4, status: 'ready', embeddings: 750 },
+  { key: 'Sales_Presentation.pdf', size: 1100000, uploadedAt: Date.now() - 3600_000 * 3, status: 'processing', embeddings: 0 },
+  { key: 'Budget_Proposal.pdf', size: 720000, uploadedAt: Date.now() - 3600_000 * 2, status: 'ready', embeddings: 1100 },
+  { key: 'Client_Agreement.pdf', size: 890000, uploadedAt: Date.now() - 3600_000 * 1, status: 'ready', embeddings: 1300 },
+  { key: 'Research_Paper_AI.pdf', size: 1500000, uploadedAt: Date.now() - 3600_000 * 20, status: 'ready', embeddings: 2500 },
+  { key: 'Team_Meeting_Notes.pdf', size: 300000, uploadedAt: Date.now() - 3600_000 * 18, status: 'processing', embeddings: 0 },
+  { key: 'Vendor_Contract_2023.pdf', size: 1050000, uploadedAt: Date.now() - 3600_000 * 16, status: 'ready', embeddings: 1800 },
+  { key: 'Security_Audit_Report.pdf', size: 1200000, uploadedAt: Date.now() - 3600_000 * 14, status: 'ready', embeddings: 1900 },
+  { key: 'Training_Manual.pdf', size: 670000, uploadedAt: Date.now() - 3600_000 * 11, status: 'processing', embeddings: 0 },
+  { key: 'Project_Charter.pdf', size: 800000, uploadedAt: Date.now() - 3600_000 * 9, status: 'ready', embeddings: 1400 },
 ];
 
 const formatBytes = (bytes) => {
@@ -51,6 +65,14 @@ const timeAgo = (ts) => {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours/24); return `${days}d ago`;
 };
+
+const normalize = (s = '') =>
+  s
+    .toLowerCase()
+    .replace(/\.(pdf|docx?)$/i, '')   // drop extension
+    .replace(/[_-]+/g, ' ')           // underscores/dashes -> spaces
+    .replace(/\s+/g, ' ')             // collapse spaces
+    .trim();
 
 const MotionPaper = motion(Paper);
 
@@ -87,6 +109,7 @@ const DocumentCard = styled(Paper)(({ theme }) => ({
 }));
 
 const Documents = () => {
+  const [previewFile, setPreviewFile] = useState(null);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState([]); // { tempId, name, progress, file }
@@ -134,10 +157,19 @@ const Documents = () => {
     return () => clearInterval(timer);
   }, [files]);
 
-  const filtered = useMemo(
-    () => files.filter(f => f.key.toLowerCase().includes(search.toLowerCase())),
-    [files, search]
-  );
+  const filtered = useMemo(() => {
+    const q = normalize(search);
+    if (!q) return files;
+    return files.filter(f => normalize(f.key).includes(q));
+  }, [files, search]);
+
+  const { page, size, setPage, setSize, paginate, totalPagesOf } = usePage(6);
+
+  // keep page valid when list shrinks (delete/search)
+  useEffect(() => {
+    const total = totalPagesOf(filtered.length);
+    if (page > total) setPage(total);
+  }, [filtered.length, page, setPage, totalPagesOf]);
 
   const sortFiles = (mode) => {
     setFiles(f => {
@@ -153,6 +185,8 @@ const Documents = () => {
     });
     setAnchorEl(null);
     notify({ status:'info', title:'Sorted', description: mode });
+    // reset to first page after sort
+    setPage(1);
   };
 
   const triggerUpload = () => fileInputRef.current?.click();
@@ -321,7 +355,7 @@ const Documents = () => {
               size="small"
               placeholder="Search documents"
               value={search}
-              onChange={e=>setSearch(e.target.value)}
+              onChange={e=>{ setSearch(e.target.value); setPage(1); }} // reset page on search
               sx={{ width:{ xs:'100%', sm:340 } }}
               InputProps={{
                 startAdornment:<InputAdornment position="start"><SearchIcon fontSize='small' /></InputAdornment>
@@ -394,114 +428,129 @@ const Documents = () => {
               ))}
             </div>
           ) : filtered.length ? (
-            <div className="documents-grid">
-              {filtered.map(file => (
-                <MotionPaper
-                  key={file.key}
-                  component={DocumentCard}
-                  layout
-                  initial={{opacity:0, y:14}}
-                  animate={{opacity:1, y:0}}
-                  transition={{type:'spring', stiffness:300, damping:26}}
-                >
-                  <Stack direction="row" spacing={1.2} alignItems="flex-start" sx={{ mb:1 }}>
-                    <Avatar
-                      variant="rounded"
-                      sx={{
-                        width:44, height:52,
-                        bgcolor:'var(--brand-maroon-100)',
-                        color:'var(--brand-maroon)',
-                        boxShadow:'inset 0 0 0 1px rgba(122,14,42,.25)'
-                      }}
-                    >
-                      <InsertDriveFileIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box flex={1} minWidth={0}>
-                      <Tooltip title={file.key} placement="top" enterDelay={600}>
-                        <Typography
-                          variant="subtitle2"
-                          fontWeight={600}
-                          sx={{
-                            lineHeight:1.25,
-                            height:'2.5em',
-                            display:'-webkit-box',
-                            WebkitLineClamp:2,
-                            WebkitBoxOrient:'vertical',
-                            overflow:'hidden'
-                          }}
-                        >
-                          {prettyName(file.key)}
-                        </Typography>
-                      </Tooltip>
-
-                      <div className="document-meta">
-                        <span className="meta-pill size">{formatBytes(file.size)}</span>
-                        <span className="meta-pill uploaded">{timeAgo(file.uploadedAt)}</span>
-                        <span className={`meta-pill status-${file.status}`}>{file.status}</span>
-                        {file.embeddings ? (
-                          <span className="meta-pill vectors">{file.embeddings.toLocaleString()}</span>
-                        ) : null}
-                      </div>
-                    </Box>
-
-                    <IconButton
-                      size="small"
-                      onClick={(e)=> { setCardMenuAnchor(e.currentTarget); setCardMenuFile(file);} }
-                      sx={{ mt:-0.5, alignSelf:'flex-start', color:'var(--text-2)', '&:hover':{ bgcolor:'var(--brand-maroon-100)' } }}
-                    >
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
-                  </Stack>
-
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={1.25}
-                    sx={{
-                      mt:'auto', pt:1.05,
-                      borderTop:'1px solid rgba(122,14,42,0.18)',
-                      justifyContent: "space-between",
-                    }}
+            <>
+              <div className="documents-grid">
+                {paginate(filtered).map(file => (
+                  <MotionPaper
+                    key={`${file.key}-${file.uploadedAt}`}
+                    component={DocumentCard}
+                    layout
+                    initial={{opacity:0, y:14}}
+                    animate={{opacity:1, y:0}}
+                    transition={{type:'spring', stiffness:300, damping:26}}
                   >
-                    {/* Edit Embeddings (outlined maroon) */}
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={()=>openEmbeddings(file)}
-                      sx={{
-                        textTransform:'none',
-                        fontSize:12,
-                        px:1.7,
-                        fontWeight:700,
-                        borderColor:'rgba(122,14,42,0.45)',
-                        bgcolor:'rgba(122,14,42,0.08)',
-                        color:'var(--brand-maroon)',
-                        '&:hover':{
-                          borderColor:'rgba(122,14,42,0.65)',
-                          bgcolor:'rgba(122,14,42,0.14)'
-                        }
-                      }}
-                      startIcon={<EditIcon sx={{ fontSize:16 }} />}
-                    >
-                      Edit Embeddings
-                    </Button>
+                    <Stack direction="row" spacing={1.2} alignItems="flex-start" sx={{ mb:1 }}>
+                      <Avatar
+                        variant="rounded"
+                        sx={{
+                          width:44, height:52,
+                          bgcolor:'var(--brand-maroon-100)',
+                          color:'var(--brand-maroon)',
+                          boxShadow:'inset 0 0 0 1px rgba(122,14,42,.25)'
+                        }}
+                      >
+                        <InsertDriveFileIcon fontSize="small" />
+                      </Avatar>
 
-                    {/* Delete */}
-                    <Button
-                      size="small"
-                      variant="text"
-                      color="error"
-                      onClick={()=>deleteFile(file.key)}
-                      sx={{ textTransform:'none', fontSize:12, fontWeight:700, ml:'auto', '&:hover':{ bgcolor:'rgba(239,68,68,0.10)' } }}
-                      startIcon={<DeleteIcon sx={{ fontSize:16 }} />}
+                      <Box flex={1} minWidth={0}>
+                        <Tooltip title={file.key} placement="top" enterDelay={600}>
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight={600}
+                            sx={{
+                              lineHeight:1.25,
+                              height:'2.5em',
+                              display:'-webkit-box',
+                              WebkitLineClamp:2,
+                              WebkitBoxOrient:'vertical',
+                              overflow:'hidden'
+                            }}
+                          >
+                            {prettyName(file.key)}
+                          </Typography>
+                        </Tooltip>
+
+                        <div className="document-meta">
+                          <span className="meta-pill size">{formatBytes(file.size)}</span>
+                          <span className="meta-pill uploaded">{timeAgo(file.uploadedAt)}</span>
+                          <span className={`meta-pill status-${file.status}`}>{file.status}</span>
+                          {file.embeddings ? (
+                            <span className="meta-pill vectors">{file.embeddings.toLocaleString()}</span>
+                          ) : null}
+                        </div>
+                      </Box>
+
+                      <IconButton
+                        size="small"
+                        onClick={(e)=> { setCardMenuAnchor(e.currentTarget); setCardMenuFile(file);} }
+                        sx={{ mt:-0.5, alignSelf:'flex-start', color:'var(--text-2)', '&:hover':{ bgcolor:'var(--brand-maroon-100)' } }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1.25}
+                      sx={{
+                        mt:'auto', pt:1.05,
+                        borderTop:'1px solid rgba(122,14,42,0.18)',
+                        justifyContent: "space-between",
+                      }}
                     >
-                      Delete
-                    </Button>
-                  </Stack>
-                </MotionPaper>
-              ))}
-            </div>
+                      {/* View File (outlined maroon) */}
+                      <Button size="small" variant="contained" onClick={()=>setPreviewFile(file)} sx={{textTransform:'none',fontSize:12,fontWeight:700,px:1.6,whiteSpace:'nowrap',background:'linear-gradient(90deg,#a3122d,#7a0e2a)',color:'#fff','&:hover':{background:'linear-gradient(90deg,#7a0e2a,#5e0b20)'}}}>View&nbsp;File</Button>
+
+                      {/* Edit Embeddings (outlined maroon) */}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={()=>openEmbeddings(file)}
+                        sx={{
+                          textTransform:'none',
+                          fontSize:12,
+                          px:1.6,
+                          whiteSpace:'nowrap',
+                          fontWeight:700,
+                          borderColor:'rgba(122,14,42,0.45)',
+                          bgcolor:'rgba(122,14,42,0.08)',
+                          color:'var(--brand-maroon)',
+                          '&:hover':{
+                            borderColor:'rgba(122,14,42,0.65)',
+                            bgcolor:'rgba(122,14,42,0.14)'
+                          }
+                        }}
+                        startIcon={<EditIcon sx={{ fontSize:16 }} />}
+                      >
+                        Edit Embeddings
+                      </Button>
+
+                      {/* Delete */}
+                      <Button
+                        size="small"
+                        variant="text"
+                        color="error"
+                        onClick={()=>deleteFile(file.key)}
+                        sx={{ textTransform:'none', fontSize:12, fontWeight:700, ml:'auto', '&:hover':{ bgcolor:'rgba(239,68,68,0.10)' } }}
+                        startIcon={<DeleteIcon sx={{ fontSize:16 }} />}
+                      >
+                        Delete
+                      </Button>
+                    </Stack>
+                  </MotionPaper>
+                ))}
+              </div>
+
+              <PaginationBar
+                page={page}
+                totalPages={totalPagesOf(filtered.length)}
+                onChange={setPage}
+                size={size}
+                onSizeChange={setSize}
+                sizes={[6, 9, 12, 18]}
+              />
+            </>
           ) : (
             <Stack alignItems="center" justifyContent="center" py={12} spacing={2} sx={{ opacity:.85 }}>
               <AutoAwesomeIcon sx={{ fontSize:84, color:'text.disabled' }} />
@@ -659,7 +708,37 @@ const Documents = () => {
           </Button>
         </DialogActions>
       </Dialog>
+    {/*  PDF Preview Dialog */}
+      <Dialog
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        fullWidth
+        maxWidth="lg"
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 300 }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" fontWeight={600}>
+            {previewFile?.key}
+          </Typography>
+          <IconButton onClick={() => setPreviewFile(null)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
+        <DialogContent dividers sx={{ p: 0, height: '80vh' }}>
+          {previewFile && (
+            <iframe
+              src={`/pdfs/Project_Charter.pdf`}  
+              title={previewFile?.key}
+              width="100%"
+              height="100%"
+              style={{ border: 'none' }}
+            />
+          
+          )}
+        </DialogContent>
+      </Dialog>
       {/* Card context menu */}
       <Popover
         open={Boolean(cardMenuAnchor)}
