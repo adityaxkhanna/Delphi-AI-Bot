@@ -87,6 +87,7 @@ const DocumentCard = styled(Paper)(({ theme }) => ({
 }));
 
 const Documents = () => {
+  const [previewFile, setPreviewFile] = useState(null);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState([]); // { tempId, name, progress, file }
@@ -464,6 +465,10 @@ const Documents = () => {
                       justifyContent: "space-between",
                     }}
                   >
+                    {/* View File (outlined maroon) */}
+
+                    <Button size="small" variant="contained" onClick={()=>setPreviewFile(file)} sx={{textTransform:'none',fontSize:12,fontWeight:700,px:1.6,whiteSpace:'nowrap',background:'linear-gradient(90deg,#a3122d,#7a0e2a)',color:'#fff','&:hover':{background:'linear-gradient(90deg,#7a0e2a,#5e0b20)'}}}>View&nbsp;File</Button>
+
                     {/* Edit Embeddings (outlined maroon) */}
                     <Button
                       size="small"
@@ -472,7 +477,8 @@ const Documents = () => {
                       sx={{
                         textTransform:'none',
                         fontSize:12,
-                        px:1.7,
+                        px:1.6,
+                        whiteSpace:'nowrap',
                         fontWeight:700,
                         borderColor:'rgba(122,14,42,0.45)',
                         bgcolor:'rgba(122,14,42,0.08)',
@@ -659,7 +665,37 @@ const Documents = () => {
           </Button>
         </DialogActions>
       </Dialog>
+    {/*  PDF Preview Dialog */}
+      <Dialog
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        fullWidth
+        maxWidth="lg"
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 300 }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" fontWeight={600}>
+            {previewFile?.key}
+          </Typography>
+          <IconButton onClick={() => setPreviewFile(null)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
+        <DialogContent dividers sx={{ p: 0, height: '80vh' }}>
+          {previewFile && (
+            <iframe
+              src={`/pdfs/Project_Charter.pdf`}  
+              title={previewFile?.key}
+              width="100%"
+              height="100%"
+              style={{ border: 'none' }}
+            />
+          
+          )}
+        </DialogContent>
+      </Dialog>
       {/* Card context menu */}
       <Popover
         open={Boolean(cardMenuAnchor)}
