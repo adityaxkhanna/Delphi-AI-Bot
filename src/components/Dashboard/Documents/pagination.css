@@ -1,0 +1,29 @@
+/* src/components/Documents/pagination.css */
+.pager {
+    margin-top: 1rem;
+    padding: .75rem 0;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+  
+  .pager-left { display: flex; align-items: center; gap: .5rem; }
+  .pager-label { font-size: .9rem; color: #475569; display: flex; align-items: center; gap: .5rem; }
+  .pager-select {
+    padding: .35rem .5rem; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff;
+  }
+  
+  .pager-right { display: flex; align-items: center; gap: .5rem; }
+  .pager-btn {
+    padding: .4rem .65rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+  }
+  .pager-btn:hover { background: #f8fafc; }
+  .pager-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .pager-status { font-size: .9rem; color: #334155; padding: 0 .25rem; }
+  /* Dark mode styles */
