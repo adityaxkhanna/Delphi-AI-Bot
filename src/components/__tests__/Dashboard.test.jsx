@@ -173,5 +173,36 @@ it("SearchBar triggers onSearch with typed value", () => {
   fireEvent.change(input, { target: { value: "iron" } });
   expect(require("./Dashboard.test.jsx").onSearchSpy).toHaveBeenCalledWith("iron");
 });
+// 14) Mobile open state shouldn't interfere with later desktop collapsed state.
+it("mobile open state doesn't interfere with later desktop collapsed state", () => {
+  window.innerWidth = 500;
+  renderDash();
+  // open mobile
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("open=true");
+
+  // resize to desktop and collapse
+  act(() => {
+    window.innerWidth = 1100;
+    window.dispatchEvent(new Event("resize"));
+  });
+  const btn = screen.getByRole("button", { name: /collapse sidebar/i });
+  fireEvent.click(btn);
+
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("collapsed=true");
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("open=false");
+});
+
+// 15) Desktop: double toggle returns collapsed=false.
+it("desktop: double toggle returns collapsed=false", () => {
+  renderDash();
+  const btn1 = screen.getByRole("button", { name: /collapse sidebar/i });
+  fireEvent.click(btn1);
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("collapsed=true");
+
+  const btn2 = screen.getByRole("button", { name: /expand sidebar/i });
+  fireEvent.click(btn2);
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("collapsed=false");
+});
 
 });
