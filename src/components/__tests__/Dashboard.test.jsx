@@ -216,5 +216,32 @@ it("initial aria-label is 'Collapse sidebar' when not collapsed", () => {
   renderDash();
   expect(screen.getByRole("button", { name: /collapse sidebar/i })).toBeInTheDocument();
 });
+// 18) Resize listener is added on mount and removed on unmount (cleanup).
+it("adds and removes resize listener on mount/unmount", () => {
+  const addSpy = vi.spyOn(window, "addEventListener");
+  const removeSpy = vi.spyOn(window, "removeEventListener");
+
+  const { unmount } = renderDash();
+  expect(addSpy).toHaveBeenCalledWith("resize", expect.any(Function));
+
+  unmount();
+  expect(removeSpy).toHaveBeenCalledWith("resize", expect.any(Function));
+
+  addSpy.mockRestore();
+  removeSpy.mockRestore();
+});
+
+// 19) dashboard-content gets 'collapsed' class when collapsed on desktop.
+it("adds 'collapsed' class to .dashboard-content when collapsed (desktop)", () => {
+  renderDash();
+  const container = document.querySelector(".dashboard-content");
+  expect(container).toBeTruthy();
+  expect(container.classList.contains("collapsed")).toBe(false);
+
+  const toggle = screen.getByRole("button", { name: /collapse sidebar/i });
+  fireEvent.click(toggle);
+
+  expect(container.classList.contains("collapsed")).toBe(true);
+});
 
 });
