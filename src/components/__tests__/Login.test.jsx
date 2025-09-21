@@ -74,18 +74,7 @@ it('shows the Microsoft sign-in button with accessible name', () => {
   const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
   expect(btn).toBeEnabled(); // interactive and not disabled
 });
-// -- Step 3: button accessibility --
-// Confirms the Microsoft sign-in button is exposed with a clear accessible name.
-it('shows the Microsoft sign-in button with accessible name', () => {
-  render(
-    <MemoryRouter initialEntries={['/login']}>
-      <Login />
-    </MemoryRouter>
-  );
 
-  const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
-  expect(btn).toBeEnabled(); // interactive and not disabled
-});
 // -- Step 4: click navigates to /dashboard --
 it('navigates to /dashboard and logs on button click', async () => {
   render(
