@@ -9,7 +9,15 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Login from '../../pages/auth/Login.jsx';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 
+// mock react-router's useNavigate so we can assert the path
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 describe('Login', () => {
   it('renders the welcome title', () => {
     // Render the page at a fake route so react-router hooks work.
@@ -78,5 +86,18 @@ it('shows the Microsoft sign-in button with accessible name', () => {
   const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
   expect(btn).toBeEnabled(); // interactive and not disabled
 });
+// -- Step 4: click navigates to /dashboard --
+it('navigates to /dashboard and logs on button click', async () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: /sign in with microsoft/i }));
+
+  expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+});
+
 
 })
