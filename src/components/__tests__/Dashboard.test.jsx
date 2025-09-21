@@ -146,5 +146,25 @@ it("resize: switching to mobile sets isMobile=true", () => {
   });
   expect(screen.getByTestId("sidebar")).toHaveTextContent("mobile=true");
 });
+// 10) Sign out triggers navigation to /login.
+it("navigates to /login on sign out click", () => {
+  renderDash();
+  fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+  expect(mockNavigate).toHaveBeenCalledWith("/login");
+});
+
+// 11) RecentActivity appears on /dashboard/chat route.
+it("shows RecentActivity on /dashboard/chat", () => {
+  mockPathname = "/dashboard/chat";
+  renderDash();
+  expect(screen.getByTestId("recent-activity")).toBeInTheDocument();
+});
+
+// 12) RecentActivity hidden on non-chat routes.
+it("hides RecentActivity on non-chat routes", () => {
+  mockPathname = "/dashboard/settings";
+  renderDash();
+  expect(screen.queryByTestId("recent-activity")).not.toBeInTheDocument();
+});
 
 });
