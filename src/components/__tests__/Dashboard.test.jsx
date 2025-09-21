@@ -56,6 +56,28 @@ const renderDash = (ui = null) =>
   render(<MemoryRouter>{ui ?? <Dashboard />}</MemoryRouter>);
 
 describe("Dashboard", () => {
+  // 1) Renders the header title so users see the product name.
+it("renders the header title", () => {
+  renderDash();
+  expect(screen.getByText("Delphi AI Bot")).toBeInTheDocument();
+});
+
+// 2) Renders children inside <main> to confirm slotting.
+it("renders children passed as props", () => {
+  renderDash(
+    <Dashboard>
+      <p>Child here</p>
+    </Dashboard>
+  );
+  expect(screen.getByText("Child here")).toBeInTheDocument();
+});
+
+// 3) SearchBar is present in header middle section.
+it("renders the SearchBar", () => {
+  renderDash();
+  expect(screen.getByTestId("search-bar")).toBeInTheDocument();
+});
+
   beforeEach(() => {
     vi.clearAllMocks();
     onSearchSpy.mockClear?.();
