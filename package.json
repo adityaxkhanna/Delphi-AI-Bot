@@ -27,13 +27,16 @@
     "vite": "^5.4.0",
     "vitest": "^2.1.9"
   },
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "lint": "echo 'Add eslint script if needed'"
+"scripts": {
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "test": "vitest",
+  "test:ci": "vitest run",
+  "test:ui": "vitest --ui",
+  "lint": "echo 'Add eslint script if needed'"
+
+
   },
   "eslintConfig": {
     "extends": [
@@ -52,5 +55,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+    
   }
 }
