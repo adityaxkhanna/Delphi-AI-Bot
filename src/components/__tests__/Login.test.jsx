@@ -54,4 +54,29 @@ it('heading has the expected id (welcome-title)', () => {
   const heading = screen.getByRole('heading', { name: /welcome back/i, level: 1 });
   expect(heading.id).toBe('welcome-title');
 });
+// -- Step 3: button accessibility --
+// Confirms the Microsoft sign-in button is exposed with a clear accessible name.
+it('shows the Microsoft sign-in button with accessible name', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
+  expect(btn).toBeEnabled(); // interactive and not disabled
+});
+// -- Step 3: button accessibility --
+// Confirms the Microsoft sign-in button is exposed with a clear accessible name.
+it('shows the Microsoft sign-in button with accessible name', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
+  expect(btn).toBeEnabled(); // interactive and not disabled
+});
+
 })
