@@ -86,5 +86,20 @@ it("renders the SearchBar", () => {
     document.body.innerHTML = "";
   });
 
-  // tests will be added in subsequent steps
+  // 4) Desktop: hamburger collapses sidebar (collapsed=true).
+it("desktop: toggles collapsed state on hamburger click", () => {
+  renderDash();
+  const toggleBtn = screen.getByRole("button", { name: /collapse sidebar/i });
+  fireEvent.click(toggleBtn);
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("collapsed=true");
+});
+
+// 5) Desktop: aria-label flips from 'Collapse' to 'Expand' after collapse.
+it("desktop: aria-label flips from 'Collapse' to 'Expand' when collapsed", () => {
+  renderDash();
+  const toggleBtn = screen.getByRole("button", { name: /collapse sidebar/i });
+  fireEvent.click(toggleBtn);
+  expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
+});
+
 });
