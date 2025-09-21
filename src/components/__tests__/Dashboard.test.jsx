@@ -35,14 +35,11 @@ vi.mock("../Dashboard/SearchBar.jsx", () => ({
     <input
       data-testid="search-bar"
       placeholder="search..."
-      onChange={(e) => {
-        onSearch(e.target.value);
-        // expose to tests
-        require("./Dashboard.test.jsx").onSearchSpy(e.target.value);
-      }}
+      onChange={(e) => onSearch(e.target.value)}
     />
   ),
 }));
+
 
 vi.mock("../Dashboard/RecentActivity.jsx", () => ({
   default: ({ chats, docs }) => (
@@ -166,13 +163,18 @@ it("hides RecentActivity on non-chat routes", () => {
   renderDash();
   expect(screen.queryByTestId("recent-activity")).not.toBeInTheDocument();
 });
-// 13) SearchBar onSearch is invoked with typed value.
+// 13) SearchBar onSearch flows to Dashboard's console.log("search:", term).
 it("SearchBar triggers onSearch with typed value", () => {
+  const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   renderDash();
+
   const input = screen.getByTestId("search-bar");
   fireEvent.change(input, { target: { value: "iron" } });
-  expect(require("./Dashboard.test.jsx").onSearchSpy).toHaveBeenCalledWith("iron");
+
+  expect(logSpy).toHaveBeenCalledWith("search:", "iron");
+  logSpy.mockRestore();
 });
+
 // 14) Mobile open state shouldn't interfere with later desktop collapsed state.
 it("mobile open state doesn't interfere with later desktop collapsed state", () => {
   window.innerWidth = 500;
