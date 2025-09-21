@@ -98,6 +98,32 @@ it('navigates to /dashboard and logs on button click', async () => {
 
   expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
 });
+// -- Step 5: keyboard activation (Enter/Space) --
+it('activates sign-in via Enter key', async () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
+  btn.focus();
+  await userEvent.keyboard('{Enter}');
+  expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+});
+
+it('activates sign-in via Space key', async () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
+  btn.focus();
+  await userEvent.keyboard(' ');
+  expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+});
 
 
 })
