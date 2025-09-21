@@ -124,6 +124,38 @@ it('activates sign-in via Space key', async () => {
   await userEvent.keyboard(' ');
   expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
 });
+// -- Step 6: legal links, aside label, presentational image --
+
+it('renders legal links (Terms, Privacy Policy)', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+  expect(screen.getByRole('link', { name: /terms/i })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /privacy policy/i })).toBeInTheDocument();
+});
+
+it('aside has a descriptive aria-label', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+  expect(screen.getByLabelText(/brand illustration/i)).toBeInTheDocument();
+});
+
+it('decorative image is presentational (alt="" + aria-hidden)', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+  // Decorative images with alt="" + aria-hidden are role=presentation
+  const img = screen.getByRole('presentation', { hidden: true });
+  expect(img).toHaveAttribute('alt', '');
+  expect(img).toHaveAttribute('aria-hidden', 'true');
+});
 
 
 })
