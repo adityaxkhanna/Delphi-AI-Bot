@@ -156,6 +156,49 @@ it('decorative image is presentational (alt="" + aria-hidden)', () => {
   expect(img).toHaveAttribute('alt', '');
   expect(img).toHaveAttribute('aria-hidden', 'true');
 });
+// -- Step 7: logs to console on click --
+it('logs "Login clicked" when the sign-in button is pressed', async () => {
+  const originalLog = console.log;
+  console.log = vi.fn();
+
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: /sign in with microsoft/i }));
+  expect(console.log).toHaveBeenCalledWith('Login clicked');
+
+  console.log = originalLog; // restore
+});
+
+// -- Step 8: button has correct aria-label AND visible text --
+it('exposes a precise aria-label and visible text for the sign-in button', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  const btn = screen.getByRole('button', { name: /sign in with microsoft/i });
+  expect(btn).toHaveAttribute('aria-label', 'Sign in with Microsoft'); // exact case
+  expect(screen.getByText('Sign in with Microsoft')).toBeInTheDocument(); // visible text node
+});
+
+// -- Step 9: section uses aria-labelledby that points to the H1 id --
+it('section aria-labelledby references the H1 id', () => {
+  render(
+    <MemoryRouter initialEntries={['/login']}>
+      <Login />
+    </MemoryRouter>
+  );
+
+  const section = screen.getByRole('region', { name: /welcome back/i });
+  const heading = screen.getByRole('heading', { name: /welcome back/i, level: 1 });
+
+  expect(section).toHaveAttribute('aria-labelledby', heading.id);
+});
 
 
 })
