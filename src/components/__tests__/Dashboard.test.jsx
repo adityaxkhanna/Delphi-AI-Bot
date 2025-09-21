@@ -120,5 +120,31 @@ it("mobile: overlay click closes sidebar", () => {
   fireEvent.click(overlay);
   expect(screen.getByTestId("sidebar")).toHaveTextContent("open=false");
 });
+// 8) Resize: mobile(open) → desktop closes overlay and resets open=false.
+it("resize: mobile(open) → desktop closes overlay and resets open=false", () => {
+  window.innerWidth = 500;
+  renderDash();
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+  expect(document.querySelector(".sidebar-overlay")).toBeTruthy();
+
+  act(() => {
+    window.innerWidth = 1200;
+    window.dispatchEvent(new Event("resize"));
+  });
+
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("mobile=false");
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("open=false");
+  expect(document.querySelector(".sidebar-overlay")).toBeFalsy();
+});
+
+// 9) Resize: desktop → mobile sets isMobile=true.
+it("resize: switching to mobile sets isMobile=true", () => {
+  renderDash();
+  act(() => {
+    window.innerWidth = 700;
+    window.dispatchEvent(new Event("resize"));
+  });
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("mobile=true");
+});
 
 });
