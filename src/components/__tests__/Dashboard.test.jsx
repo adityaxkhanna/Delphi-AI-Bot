@@ -101,5 +101,24 @@ it("desktop: aria-label flips from 'Collapse' to 'Expand' when collapsed", () =>
   fireEvent.click(toggleBtn);
   expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
 });
+// 6) Mobile: toggling opens sidebar and shows overlay.
+it("mobile: opening sidebar shows overlay", () => {
+  window.innerWidth = 500;
+  renderDash();
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("open=true");
+  expect(document.querySelector(".sidebar-overlay")).toBeTruthy();
+});
+
+// 7) Mobile: clicking overlay closes sidebar (open=false).
+it("mobile: overlay click closes sidebar", () => {
+  window.innerWidth = 500;
+  renderDash();
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+  const overlay = document.querySelector(".sidebar-overlay");
+  expect(overlay).toBeTruthy();
+  fireEvent.click(overlay);
+  expect(screen.getByTestId("sidebar")).toHaveTextContent("open=false");
+});
 
 });
