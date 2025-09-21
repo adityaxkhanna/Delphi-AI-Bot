@@ -438,3 +438,18 @@
     font-size: 0.75rem;
   }
 }
+/* Make assistant body text theme-aware (same tone as summary) */
+.message-row.assistant .bubble .message-content {
+  color: var(--text-1);
+}
+
+/* If your variables aren't wired for dark mode, harden it: */
+body.dark-mode .message-row.assistant .bubble .message-content {
+  color: #e5e7eb;
+}
+
+/* Optional: make the “hint” / muted lines clearly secondary in both modes */
+.message-row.assistant .bubble .hint,
+.message-row.assistant .bubble .message-content .muted {
+  color: var(--text-2);
+}
