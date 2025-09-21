@@ -204,5 +204,17 @@ it("desktop: double toggle returns collapsed=false", () => {
   fireEvent.click(btn2);
   expect(screen.getByTestId("sidebar")).toHaveTextContent("collapsed=false");
 });
+// 16) Desktop: overlay should never appear on toggle.
+it("desktop: no overlay should be present even after toggling", () => {
+  renderDash();
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+  expect(document.querySelector(".sidebar-overlay")).toBeFalsy();
+});
+
+// 17) Initial accessible name confirms non-collapsed (Collapse sidebar).
+it("initial aria-label is 'Collapse sidebar' when not collapsed", () => {
+  renderDash();
+  expect(screen.getByRole("button", { name: /collapse sidebar/i })).toBeInTheDocument();
+});
 
 });
