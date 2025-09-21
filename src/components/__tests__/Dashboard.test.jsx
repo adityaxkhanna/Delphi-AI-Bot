@@ -166,5 +166,12 @@ it("hides RecentActivity on non-chat routes", () => {
   renderDash();
   expect(screen.queryByTestId("recent-activity")).not.toBeInTheDocument();
 });
+// 13) SearchBar onSearch is invoked with typed value.
+it("SearchBar triggers onSearch with typed value", () => {
+  renderDash();
+  const input = screen.getByTestId("search-bar");
+  fireEvent.change(input, { target: { value: "iron" } });
+  expect(require("./Dashboard.test.jsx").onSearchSpy).toHaveBeenCalledWith("iron");
+});
 
 });
