@@ -188,3 +188,47 @@
     font-size: 8px;
   }
 }
+/* ===== Recent Activity: Dark mode ===== */
+
+body.dark-mode .recent-rail {
+  background: linear-gradient(180deg, #151113, #1d1417);
+  border-left: 1px solid rgba(255,107,138,0.28);  /* matches Delphi maroon accent */
+  color: #e5e7eb;
+}
+
+body.dark-mode .recent-rail h3 {
+  color: #f3f4f6;
+}
+
+body.dark-mode .ra-block h4 {
+  color: #e5e7eb;
+  opacity: .85; /* keep slight hierarchy */
+}
+
+body.dark-mode .ra-block li {
+  border-bottom: 1px solid rgba(255,107,138,0.20);
+}
+
+body.dark-mode .item-title {
+  color: #f1f5f9;  /* primary text */
+}
+
+body.dark-mode .meta,
+body.dark-mode .muted {
+  color: #a3a3a3;  /* secondary muted */
+  opacity: 1;      /* ensure readable in dark */
+}
+
+/* Mobile bottom-sheet variant in dark mode */
+@media (max-width: 767px) {
+  body.dark-mode .recent-rail {
+    background: linear-gradient(180deg, #191215, #23171a);
+    border-top: 1px solid rgba(255,107,138,0.28);
+    border-left: none;
+  }
+}
+
+/* Optional: nicer hover on list items */
+body.dark-mode .ra-block li:hover {
+  background: rgba(255,107,138,0.06);
+}
