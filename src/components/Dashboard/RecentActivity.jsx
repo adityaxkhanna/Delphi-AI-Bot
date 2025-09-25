@@ -31,9 +31,11 @@
 //   );
 // }
 import React from "react";
+import { useDarkMode } from "../../contexts/DarkModeContext.jsx";
 import "./RecentActivity.css";
 
 export default function RecentActivity({ chats = [] }) {
+  const { isDarkMode } = useDarkMode();
   return (
     <aside className="recent-rail" aria-label="Recent activity">
       <h3>Recent Activity</h3>
