@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './Documents.css';
-
-
 import { alpha, styled } from '@mui/material/styles';
 import {
   Box, Stack, Typography, Button, IconButton, TextField, Chip, Tooltip, Divider,
@@ -28,15 +26,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { AnimatePresence, motion } from 'framer-motion';
-
-// Mock async functions simulating S3 latency
-const mockDelay = (ms) => new Promise(r => setTimeout(r, ms));
-
-const seedFiles = [
-  { key: 'Enterprise_Strategy_Overview.pdf', size: 842311, uploadedAt: Date.now() - 3600_000 * 5, status: 'ready', embeddings: 1532 },
-  { key: 'Q2_Financial_Report.pdf', size: 1320311, uploadedAt: Date.now() - 3600_000 * 24 * 2, status: 'ready', embeddings: 2048 },
-  { key: 'Employee_Handbook.pdf', size: 523001, uploadedAt: Date.now() - 3600_000 * 12, status: 'processing', embeddings: 0 },
-];
+import { listVaultFiles, uploadVaultFile, deleteVaultFile, getVaultFileUrl } from '../../../api/vaultFiles';
 
 const formatBytes = (bytes) => {
   if (!bytes && bytes !== 0) return '-';
@@ -87,7 +77,8 @@ const DocumentCard = styled(Paper)(({ theme }) => ({
 }));
 
 const Documents = () => {
-  const [previewFile, setPreviewFile] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null); // object with { key, url? }
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState([]); // { tempId, name, progress, file }
@@ -109,28 +100,33 @@ const Documents = () => {
   const [cardMenuAnchor, setCardMenuAnchor] = useState(null); // for per-card contextual menu
   const [cardMenuFile, setCardMenuFile] = useState(null);
 
+  // Initial fetch from backend
   useEffect(() => {
-    (async () => {
-      await mockDelay(600);
-      setFiles(seedFiles);
-      setLoading(false);
-    })();
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        console.log('Loading vault files...');
+        const mapped = await listVaultFiles();
+        console.log('Vault files loaded:', mapped);
+        if (!cancelled) setFiles(mapped);
+      } catch (e) {
+        notify({ status: 'error', title: 'Load failed', description: e.message });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
+  // Simulated embedding progress loop for files flagged processing
   useEffect(() => {
-    if (!files.length) return;
+    if (!files.some(f => f.status === 'processing')) return;
     const timer = setInterval(() => {
-      setFiles(f => f.map(file =>
-        file.status === 'processing'
-          ? {
-              ...file,
-              status: Math.random() > 0.7 ? 'ready' : 'processing',
-              embeddings: file.status === 'processing'
-                ? (file.embeddings || 0) + Math.floor(Math.random()*300)
-                : file.embeddings
-            }
-          : file
-      ));
+      setFiles(f => f.map(file => file.status === 'processing'
+        ? { ...file, status: Math.random() > 0.85 ? 'ready' : 'processing', embeddings: (file.embeddings || 0) + Math.floor(Math.random()*250) }
+        : file));
     }, 2500);
     return () => clearInterval(timer);
   }, [files]);
@@ -164,21 +160,30 @@ const Documents = () => {
     const pdfs = list.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
     const rejected = list.length - pdfs.length;
     if (rejected) {
-      notify({ status:'warning', title:`${rejected} file(s) rejected`, description:'Only PDF files are allowed.' });
+      notify({ status: 'warning', title: `${rejected} file(s) rejected`, description: 'Only PDF files are allowed.' });
     }
     for (const file of pdfs) {
       const tempId = `${file.name}-${Date.now()}`;
       const uploadObj = { tempId, name: file.name, progress: 0, file };
       setUploading(u => [...u, uploadObj]);
-      for (let p=0; p<=100; p+= Math.round(10 + Math.random()*25)) {
-        await mockDelay(180 + Math.random()*220);
-        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: Math.min(p,100) } : x));
+      try {
+        // Encode + upload
+        const arrayBuf = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: 20 } : x));
+        // Call API (uploadVaultFile reports intermediate progress via callback)
+        await uploadVaultFile(file, (p)=> setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: Math.min(85, p) } : x)) );
+        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: 95 } : x));
+        setFiles(f => [{ key: file.name, size: file.size, uploadedAt: Date.now(), status: 'processing', embeddings: 0 }, ...f]);
+        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: 100 } : x));
+        notify({ status: 'success', title: 'Upload successful', description: file.name });
+      } catch (err) {
+        notify({ status: 'error', title: 'Upload failed', description: err.message });
+      } finally {
+        setUploading(u => u.filter(x => x.tempId !== tempId));
       }
-      setFiles(f => [{ key: file.name, size: file.size, uploadedAt: Date.now(), status: 'processing', embeddings: 0 }, ...f]);
-      setUploading(u => u.filter(x => x.tempId !== tempId));
-      notify({ status:'success', title:'Upload started', description:`${file.name} is queued for embedding.` });
     }
-    if(e.target) e.target.value = '';
+    if (e.target) e.target.value = '';
   };
 
   const [dragActive, setDragActive] = useState(false);
@@ -197,9 +202,14 @@ const Documents = () => {
     }
   },[handleFileSelect]);
 
-  const deleteFile = (key) => {
-    setFiles(f => f.filter(x => x.key !== key));
-    notify({ status:'info', title:'Deleted', description:key });
+  const deleteFile = async (key) => {
+    try {
+      await deleteVaultFile(key);
+      setFiles(f => f.filter(x => x.key !== key));
+      notify({ status: 'success', title: 'Deleted', description: key });
+    } catch (e) {
+      notify({ status: 'error', title: 'Delete failed', description: e.message });
+    }
   };
 
   const openEmbeddings = (file) => {
@@ -334,12 +344,11 @@ const Documents = () => {
             <IconButton
               color="primary"
               size="small"
-              onClick={()=>{
+              onClick={async ()=>{
                 setLoading(true);
-                mockDelay(500).then(()=>{
-                  setLoading(false);
-                  notify({status:'success', title:'Data refreshed'});
-                });
+                try { const mapped = await listVaultFiles(); setFiles(mapped); notify({status:'success', title:'Data refreshed'}); }
+                catch(e){ notify({ status:'error', title:'Refresh failed', description:e.message }); }
+                finally { setLoading(false); }
               }}
               sx={{
                 color:'var(--brand-maroon)',
@@ -467,7 +476,20 @@ const Documents = () => {
                   >
                     {/* View File (outlined maroon) */}
 
-                    <Button size="small" variant="contained" onClick={()=>setPreviewFile(file)} sx={{textTransform:'none',fontSize:12,fontWeight:700,px:1.6,whiteSpace:'nowrap',background:'linear-gradient(90deg,#a3122d,#7a0e2a)',color:'#fff','&:hover':{background:'linear-gradient(90deg,#7a0e2a,#5e0b20)'}}}>View&nbsp;File</Button>
+                    <Button size="small" variant="contained" onClick={async ()=>{
+                      setPreviewLoading(true);
+                      try {
+                        const data = await getVaultFileUrl(file.key);
+                        setPreviewFile({ ...file, url: data.url, expires_in: data.expires_in });
+                        notify({ status:'info', title:'File ready', description:`URL expires in ${data.expires_in}s` });
+                      } catch (e) {
+                        notify({ status:'error', title:'Open failed', description: e.message });
+                      } finally {
+                        setPreviewLoading(false);
+                      }
+                    }} sx={{textTransform:'none',fontSize:12,fontWeight:700,px:1.6,whiteSpace:'nowrap',background:'linear-gradient(90deg,#a3122d,#7a0e2a)',color:'#fff','&:hover':{background:'linear-gradient(90deg,#7a0e2a,#5e0b20)'}}} disabled={previewLoading}>
+                      {previewLoading ? 'Loading...' : 'View\u00A0File'}
+                    </Button>
 
                     {/* Edit Embeddings (outlined maroon) */}
                     <Button
@@ -682,17 +704,20 @@ const Documents = () => {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
-        <DialogContent dividers sx={{ p: 0, height: '80vh' }}>
-          {previewFile && (
+        <DialogContent dividers sx={{ p: 0, height: '80vh', position:'relative' }}>
+          {previewFile?.url ? (
             <iframe
-              src={`/pdfs/Project_Charter.pdf`}  
-              title={previewFile?.key}
+              src={previewFile.url}
+              title={previewFile.key}
               width="100%"
               height="100%"
               style={{ border: 'none' }}
             />
-          
+          ) : (
+            <Stack alignItems="center" justifyContent="center" height="100%" spacing={2}>
+              <LinearProgress sx={{ width: 260 }} />
+              <Typography variant="body2" color="text.secondary">Fetching file...</Typography>
+            </Stack>
           )}
         </DialogContent>
       </Dialog>
