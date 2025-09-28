@@ -1,23 +1,47 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+// import { defineConfig } from 'vite';
+// import react from '@vitejs/plugin-react';
+
+// export default defineConfig({
+//   plugins: [react()],
+//   build: {
+//     outDir: 'dist',
+//     sourcemap: true,
+//   },
+//   server: {
+//     port: 5173,
+//     open: true,
+//   },
+//   test: {
+//     environment: 'jsdom',
+//     globals: true,
+//     setupFiles: './src/setupTests.js',
+//     css: true,
+//     coverage: {
+//       reporter: ['text', 'json', 'html'],
+//     },
+//   },
+// });
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     sourcemap: true,
   },
   server: {
-    port: 5173,
+    port: 3000,        
+    strictPort: true,  
     open: true,
   },
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: './src/setupTests.js',
+    setupFiles: "./src/setupTests.js",
     css: true,
     coverage: {
-      reporter: ['text', 'json', 'html'],
+      reporter: ["text", "json", "html"],
     },
   },
 });
