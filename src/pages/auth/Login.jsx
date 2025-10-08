@@ -3,27 +3,37 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
+import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest } from "../../authConfig";
 
 export default function Login() {
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
-  const { instance } = useMsal();
+  const { instance, accounts, inProgress } = useMsal();
 
-  // If already signed in, go to dashboard
+  // After sign-in, wait for MSAL to finish, set active account, then go to dashboard
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard");
+    if (inProgress === InteractionStatus.None && isAuthenticated) {
+      if (accounts.length && !instance.getActiveAccount()) {
+        instance.setActiveAccount(accounts[0]);
+      }
+      navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, inProgress, accounts, instance, navigate]);
 
   const handleMicrosoftLogin = () => {
-    // Force the trailing slash to match the Azure App Registration
-    instance.loginRedirect({ ...loginRequest, redirectUri: "https://localhost:3000" });
+    instance.loginRedirect({
+      ...loginRequest,
+      redirectUri: window.location.origin, // e.g., https://localhost:3000
+    });
   };
 
   const handleLogout = () => {
-    instance.logoutRedirect({ postLogoutRedirectUri: "https://localhost:3000" });
+    const account = instance.getActiveAccount() || accounts[0];
+    instance.logoutRedirect({
+      account,
+      postLogoutRedirectUri: window.location.origin, // e.g., https://localhost:3000
+    });
   };
 
   return (

@@ -1,8 +1,8 @@
 
-
-// export default Dashboard;
+// src/pages/Dashboard/Dashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useMsal } from '@azure/msal-react';
 import Sidebar from './Sidebar.jsx';
 import './Dashboard.css';
 import SearchBar from "./SearchBar.jsx";
@@ -33,9 +33,14 @@ const Dashboard = ({ children }) => {
     else setSidebarCollapsed(c => !c);
   };
 
+  // Real sign-out via MSAL (no redirect loop)
+  const { instance, accounts } = useMsal();
   const handleSignOut = () => {
-    console.log('Sign out clicked');
-    navigate('/login');
+    const account = instance.getActiveAccount() || accounts[0];
+    instance.logoutRedirect({
+      account,
+      postLogoutRedirectUri: window.location.origin, // e.g., https://localhost:3000
+    });
   };
 
   return (
