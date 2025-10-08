@@ -19,11 +19,11 @@ export default function Login() {
 
   const handleMicrosoftLogin = () => {
     // Force the trailing slash to match the Azure App Registration
-    instance.loginRedirect({ ...loginRequest, redirectUri: "http://localhost:3000/" });
+    instance.loginRedirect({ ...loginRequest, redirectUri: "https://localhost:3000" });
   };
 
   const handleLogout = () => {
-    instance.logoutRedirect({ postLogoutRedirectUri: "http://localhost:3000/" });
+    instance.logoutRedirect({ postLogoutRedirectUri: "https://localhost:3000" });
   };
 
   return (

@@ -24,7 +24,7 @@ export default function App() {
               authenticationRequest={{
                 ...loginRequest,
                 // Force exact redirect URI Azure has registered (with trailing slash)
-                redirectUri: "http://localhost:3000/",
+                redirectUri: "http://localhost:3000",
               }}
               loadingComponent={<div style={{ padding: 24 }}>Signing you in…</div>}
               errorComponent={({ error }) => (
