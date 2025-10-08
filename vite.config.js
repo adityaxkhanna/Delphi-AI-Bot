@@ -1,16 +1,16 @@
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+import fs from "fs";
 
 export default defineConfig({
-  plugins: [react(), basicSsl()],
-  build: {
-    outDir: "dist",
-    sourcemap: true,
-  },
+  plugins: [react()],               // ← remove basicSsl()
+  build: { outDir: "dist", sourcemap: true },
   server: {
-    https: true,          // <-- enable HTTPS
+    https: {
+      key: fs.readFileSync("./localhost-key.pem"),  // mkcert outputs
+      cert: fs.readFileSync("./localhost.pem"),
+    },
     host: "localhost",
     port: 3000,
     strictPort: true,
