@@ -4,6 +4,7 @@
 import { apiClient, fileToBase64 } from './client';
 
 const VAULT_PATH = '/delphi-vault-file';
+const CHUNKS_PATH = '/delphi-vault-chunks';
 
 export async function listVaultFiles() {
   const data = await apiClient.request('GET', VAULT_PATH);
@@ -24,7 +25,12 @@ export async function uploadVaultFile(file, onProgress) {
   onProgress && onProgress(40);
   const resp = await apiClient.request('POST', VAULT_PATH, { body: { fileName: file.name, fileData: b64 } });
   onProgress && onProgress(90);
-  return { key: resp.key || file.name, size: file.size };
+  console.log('uploadVaultFile: resp', resp);
+  return { 
+    key: resp.key || file.name, 
+    size: file.size,
+    job_id: resp.job_id
+  };
 }
 
 export async function deleteVaultFile(key) {
@@ -38,4 +44,31 @@ export async function getVaultFileUrl(key) {
   const data = await apiClient.request('GET', VAULT_PATH, { query: { key } });
   if (data.url) return data;
   throw new Error('No URL returned (keys: ' + Object.keys(data || {}).join(',') + ')');
+}
+
+// Get job status for async processing
+// Returns { success, job_id, key, state, chunk_count, last_updated }
+export async function getJobStatus(jobId) {
+  if (!jobId) throw new Error('job_id required');
+  const data = await apiClient.request('GET', VAULT_PATH, { query: { job_id: jobId } });
+  console.log('getJobStatus: data', data);
+  return data;
+}
+
+// Get chunks for a file
+// Returns { success, chunks, count, file_key }
+export async function getVaultFileChunks(fileName) {
+  if (!fileName) throw new Error('fileName required');
+  const data = await apiClient.request('GET', CHUNKS_PATH, { query: { file_name: fileName } });
+  return data;
+}
+
+// Update a chunk
+// Returns { success, message, chunk }
+export async function updateVaultChunk(chunkData) {
+  if (!chunkData.chunk_id || !chunkData.file_key) {
+    throw new Error('chunk_id and file_key are required');
+  }
+  const data = await apiClient.request('PUT', CHUNKS_PATH, { body: chunkData });
+  return data;
 }

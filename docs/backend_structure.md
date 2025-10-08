@@ -1,7 +1,7 @@
 # Australian Red Cross Document-Level RAG System
 
 ## System Overview
-A RAG system that summarizes uploaded documents, stores summary embeddings for retrieval, and uses entire documents for comprehensive answer generation with proper citations.
+A RAG system that processes uploaded documents through chunking, stores chunks with embeddings for retrieval, and provides document chunk management with editing capabilities.
 
 ## Core Architecture Components
 
@@ -9,45 +9,53 @@ A RAG system that summarizes uploaded documents, stores summary embeddings for r
 
 #### Document Storage (S3)
 ```
-red-cross-documents/
-├── raw-documents/           # Original uploaded files (any type)
-│   ├── {document_id}/
-│   │   ├── original.pdf
-│   │   ├── extracted_text.txt
-│   │   └── processing_metadata.json
-├── processed-summaries/     # Generated document summaries
-│   └── {document_id}_summary.txt
+delphi-document-vault/
+├── documents/               # Original uploaded PDF files
+│   ├── document1.pdf
+│   ├── document2.pdf
+│   └── ...
 └── system-logs/            # Processing and error logs
 ```
 
 #### Document Processing Flow
-1. **Document Upload** → S3 raw-documents bucket (any file type)
-2. **Lambda Trigger** → Automatic processing on S3 upload
-3. **Text Extraction** → AWS Textract for PDFs, Comprehend for other formats
-4. **Document Analysis** → Extract metadata, detect language, classify content
-5. **Summary Generation** → AWS Bedrock (Claude) for intelligent summarization
-6. **Embedding Generation** → AWS Bedrock (Titan) on summary text
-7. **Vector Storage** → OpenSearch with document-level vectors
+1. **Document Upload** → S3 delphi-document-vault bucket (PDF files only)
+2. **SQS Message** → Automatic async processing trigger
+3. **Text Extraction** → AWS Textract for PDF processing
+4. **Chunking** → Intelligent or simple text chunking
+5. **Summary Generation** → AI-powered chunk summarization (optional)
+6. **Storage** → DynamoDB chunks table with metadata
 
 ### 2. Storage Architecture
 
 #### DynamoDB Tables
 
-**Documents Table**
+**Jobs Table (delphi-document-jobs)**
 ```json
 {
-  "document_id": "doc_20240115_001",
-  "original_filename": "Emergency_Response_Protocol.pdf",
-  "upload_timestamp": "2024-01-15T10:30:00Z",
-  "file_size_bytes": 2048576,
-  "file_type": "application/pdf",
-  "processing_status": "completed",
-  "s3_paths": {
-    "original": "s3://bucket/raw-documents/doc_20240115_001/original.pdf",
-    "extracted_text": "s3://bucket/raw-documents/doc_20240115_001/extracted_text.txt",
-    "summary": "s3://bucket/processed-summaries/doc_20240115_001_summary.txt"
-  },
-  "extracted_metadata": {
+  "job_id": "391e0fcd-bbd6-4bae-91f7-2d95520bbc19",
+  "file_key": "documents/testing_file.pdf",
+  "file_name": "testing_file.pdf", 
+  "state": "completed",  // queued, processing, completed, failed
+  "chunk_count": 15,
+  "requested_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:32:45Z",
+  "error_message": null  // populated if state is failed
+}
+```
+
+**Chunks Table (delphi-document-chunks)**
+```json
+{
+  "chunk_id": "uuid-chunk-identifier",     // Partition Key
+  "file_key": "documents/testing_file.pdf", // Sort Key
+  "title": "Emergency Response Protocols",
+  "summary": "Overview of emergency response procedures...",
+  "text": "Full chunk text content extracted from document...",
+  "pages": [1, 2],
+  "created_at": "2024-01-15T10:32:00Z",
+  "updated_at": "2024-01-15T10:32:00Z"
+}
+```
     "page_count": 45,
     "word_count": 8500,
     "language": "en",
@@ -474,6 +482,152 @@ Provide a thorough response with proper citations. Focus on being helpful while 
       status: "deleted"
 ```
 
+## NEW: Chunk-Based Processing API
+
+### Chunk Management Endpoints
+
+#### File Upload with Job Tracking (/delphi-vault-file)
+
+**POST /delphi-vault-file** - Upload PDF file
+```json
+// Request
+{
+  "fileName": "testing_file.pdf",
+  "fileData": "base64-encoded-pdf-content"
+}
+
+// Response
+{
+  "success": true,
+  "key": "testing_file.pdf",
+  "size": 401107,
+  "message": "Upload accepted; processing will continue asynchronously.",
+  "job_id": "391e0fcd-bbd6-4bae-91f7-2d95520bbc19"
+}
+```
+
+**GET /delphi-vault-file?job_id={job_id}** - Get processing status
+```json
+// Response
+{
+  "success": true,
+  "job_id": "391e0fcd-bbd6-4bae-91f7-2d95520bbc19",
+  "key": "testing_file.pdf",
+  "file_key": "documents/testing_file.pdf",
+  "state": "completed",  // queued, processing, completed, failed
+  "chunk_count": 15,
+  "last_updated": "2024-01-15T10:32:45Z",
+  "created_at": "2024-01-15T10:30:00Z",
+  "error_message": null
+}
+```
+
+#### Chunks Management (/delphi-vault-chunks)
+
+**GET /delphi-vault-chunks?file_name={filename}** - Get all chunks for a file
+```json
+// Response
+{
+  "success": true,
+  "chunks": [
+    {
+      "chunk_id": "uuid-chunk-identifier",
+      "file_key": "documents/testing_file.pdf",
+      "title": "Emergency Response Protocols",
+      "summary": "Overview of emergency response procedures...",
+      "text": "Full chunk text content...",
+      "pages": [1, 2],
+      "created_at": "2024-01-15T10:32:00Z",
+      "updated_at": "2024-01-15T10:32:00Z"
+    }
+  ],
+  "count": 15,
+  "file_key": "documents/testing_file.pdf"
+}
+```
+
+**PUT /delphi-vault-chunks** - Update chunk content
+```json
+// Request
+{
+  "chunk_id": "uuid-chunk-identifier",
+  "file_key": "documents/testing_file.pdf",
+  "text": "Updated chunk text content...",
+  "summary": "Updated summary...",
+  "title": "Updated title..."
+}
+
+// Response
+{
+  "success": true,
+  "message": "Chunk updated successfully",
+  "chunk": {
+    "chunk_id": "uuid-chunk-identifier",
+    "file_key": "documents/testing_file.pdf",
+    "title": "Updated title...",
+    "summary": "Updated summary...",
+    "text": "Updated chunk text content...",
+    "pages": [1, 2],
+    "created_at": "2024-01-15T10:32:00Z",
+    "updated_at": "2024-01-15T10:35:22Z"
+  }
+}
+```
+
+### New DynamoDB Tables
+
+**Jobs Table (delphi-document-jobs)**
+```json
+{
+  "job_id": "391e0fcd-bbd6-4bae-91f7-2d95520bbc19",  // Partition Key
+  "file_key": "documents/testing_file.pdf",
+  "file_name": "testing_file.pdf", 
+  "state": "completed",  // queued, processing, completed, failed
+  "chunk_count": 15,
+  "requested_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:32:45Z",
+  "error_message": null  // populated if state is failed
+}
+```
+
+**Chunks Table (delphi-document-chunks)**
+```json
+{
+  "chunk_id": "uuid-chunk-identifier",     // Partition Key
+  "file_key": "documents/testing_file.pdf", // Sort Key
+  "title": "Emergency Response Protocols",
+  "summary": "Overview of emergency response procedures...",
+  "text": "Full chunk text content extracted from document...",
+  "pages": [1, 2],
+  "created_at": "2024-01-15T10:32:00Z",
+  "updated_at": "2024-01-15T10:32:00Z"
+}
+```
+
+### Processing Workflow
+
+1. **File Upload**: User uploads PDF via React frontend
+2. **S3 Storage**: File stored in S3 bucket with unique key
+3. **Job Creation**: Job record created in DynamoDB with "queued" status
+4. **SQS Message**: Processing message sent to SQS queue
+5. **Async Processing**: Lambda worker processes file:
+   - Extracts text using Textract
+   - Creates chunks using intelligent or simple chunking
+   - Stores chunks in DynamoDB
+   - Updates job status to "completed"
+6. **Status Polling**: Frontend polls job status every 3 seconds
+7. **Chunk Viewing**: Once complete, user can view and edit chunks
+8. **Chunk Editing**: Real-time updates to chunk content via PUT API
+
+### Frontend Integration
+
+The React frontend provides:
+- File upload with progress tracking
+- Real-time job status polling  
+- Chunk viewer with inline editing
+- Progress indicators and notifications
+- Error handling and retry mechanisms
+
 
 ## Implementation Benefits
 
@@ -481,3 +635,5 @@ Provide a thorough response with proper citations. Focus on being helpful while 
 2. **Flexible Document Types**: No need to categorize uploads - system adapts automatically  
 3. **Intelligent Summarization**: High-quality summaries enable accurate retrieval
 4. **Scalable Architecture**: AWS-native services scale automatically with usage
+5. **Chunk Management**: Users can review and edit document chunks for better accuracy
+6. **Async Processing**: Large documents don't block the UI during processing
