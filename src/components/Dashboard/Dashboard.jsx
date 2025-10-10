@@ -3,12 +3,14 @@
 // export default Dashboard;
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useDarkMode } from '../../contexts/DarkModeContext.jsx';
 import Sidebar from './Sidebar.jsx';
 import './Dashboard.css';
 import SearchBar from "./SearchBar.jsx";
 import RecentActivity from "./RecentActivity.jsx";
 
 const Dashboard = ({ children }) => {
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.innerWidth <= 768
@@ -81,18 +83,47 @@ const Dashboard = ({ children }) => {
             />
           </div>
 
-          <button
-            className="sign-out-button"
-            onClick={handleSignOut}
-            aria-label="Sign out"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16,17 21,12 16,7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            <span>Sign Out</span>
-          </button>
+          <div className="header-actions">
+            <button
+              className="dark-mode-toggle"
+              onClick={toggleDarkMode}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                {isDarkMode ? (
+                  // Sun icon for light mode
+                  <>
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                  </>
+                ) : (
+                  // Moon icon for dark mode
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                )}
+              </svg>
+            </button>
+            
+            <button
+              className="sign-out-button"
+              onClick={handleSignOut}
+              aria-label="Sign out"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16,17 21,12 16,7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          </div>
         </header>
 
         <main className="dashboard-main">

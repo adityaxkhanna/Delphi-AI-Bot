@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useDarkMode } from "../../contexts/DarkModeContext.jsx";
 import "./SearchBar.css";
 
 export default function SearchBar({ onSearch, suggestions = [] }) {
+  const { isDarkMode } = useDarkMode();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
