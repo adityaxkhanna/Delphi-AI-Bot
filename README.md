@@ -14,6 +14,17 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
+### Environment Variables
+
+The application requires several environment variables for Microsoft Entra (Azure AD) authentication and API access.
+These variables should be defined in a .env.local file located in the project root directory.
+
+Required Keys
+VITE_AAD_CLIENT_ID=
+VITE_AAD_TENANT_ID=
+VITE_API_SCOPE=
+VITE_MSAL_REDIRECT_URI=
+
 ### Local HTTPS Setup (Development Environment)
 
 In the local environment, HTTPS is required for Microsoft Entra (Azure AD) authentication, since OAuth redirects are blocked over plain HTTP.
