@@ -12,12 +12,13 @@ export default defineConfig({
   },
   server: isDev
     ? {
-        https: fs.existsSync("./localhost.pem") && fs.existsSync("./localhost-key.pem")
-          ? {
-              key: fs.readFileSync("./localhost-key.pem"),
-              cert: fs.readFileSync("./localhost.pem"),
-            }
-          : false, // fallback to http if no cert
+        https: (fs.existsSync("./localhost.pem") && fs.existsSync("./localhost-key.pem"))
+  ? {
+      key: fs.readFileSync("./localhost-key.pem"),
+      cert: fs.readFileSync("./localhost.pem"),
+    }
+  : false,
+
         host: "localhost",
         port: 3000,
         strictPort: true,
