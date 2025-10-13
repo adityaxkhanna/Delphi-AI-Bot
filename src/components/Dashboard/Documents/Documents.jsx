@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './Documents.css';
-
-
 import { alpha, styled } from '@mui/material/styles';
 import {
   Box, Stack, Typography, Button, IconButton, TextField, Chip, Tooltip, Divider,
@@ -28,15 +26,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { AnimatePresence, motion } from 'framer-motion';
-
-// Mock async functions simulating S3 latency
-const mockDelay = (ms) => new Promise(r => setTimeout(r, ms));
-
-const seedFiles = [
-  { key: 'Enterprise_Strategy_Overview.pdf', size: 842311, uploadedAt: Date.now() - 3600_000 * 5, status: 'ready', embeddings: 1532 },
-  { key: 'Q2_Financial_Report.pdf', size: 1320311, uploadedAt: Date.now() - 3600_000 * 24 * 2, status: 'ready', embeddings: 2048 },
-  { key: 'Employee_Handbook.pdf', size: 523001, uploadedAt: Date.now() - 3600_000 * 12, status: 'processing', embeddings: 0 },
-];
+import { listVaultFiles, uploadVaultFile, deleteVaultFile, getVaultFileUrl, getJobStatus, getVaultFileChunks, updateVaultChunk } from '../../../api/vaultFiles';
 
 const formatBytes = (bytes) => {
   if (!bytes && bytes !== 0) return '-';
@@ -69,6 +59,226 @@ const ScrollArea = styled('div')(({ theme }) => ({
   paddingRight: theme.spacing(1)
 }));
 
+// Individual chunk card component
+const ChunkCard = ({ chunk, index, onUpdate }) => {
+  const [editing, setEditing] = React.useState({ field: null });
+  const [editValues, setEditValues] = React.useState({
+    title: chunk.title || '',
+    summary: chunk.summary || '',
+    text: chunk.text || ''
+  });
+
+  const handleEdit = (field) => {
+    setEditing({ field });
+    setEditValues({
+      title: chunk.title || '',
+      summary: chunk.summary || '',
+      text: chunk.text || ''
+    });
+  };
+
+  const handleSave = async (field) => {
+    try {
+      await onUpdate(chunk.chunk_id, { [field]: editValues[field] });
+      setEditing({ field: null });
+    } catch (error) {
+      console.error('Failed to update chunk:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing({ field: null });
+    setEditValues({
+      title: chunk.title || '',
+      summary: chunk.summary || '',
+      text: chunk.text || ''
+    });
+  };
+
+  const handleKeyPress = (e, field) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSave(field);
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
+  return (
+    <Paper 
+      elevation={1} 
+      sx={{ 
+        p: 2, 
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'grey.200',
+        '&:hover': {
+          borderColor: 'var(--brand-maroon)',
+          boxShadow: 2
+        }
+      }}
+    >
+      <Stack spacing={2}>
+        {/* Header with chunk info */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Chunk {index + 1} • Pages: {Array.isArray(chunk.pages) ? chunk.pages.join(', ') : 'N/A'}
+          </Typography>
+          <Chip 
+            label={chunk.chunk_id.substring(0, 8)} 
+            size="small" 
+            variant="outlined"
+            sx={{ fontSize: '0.7rem' }}
+          />
+        </Box>
+
+        {/* Title field */}
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
+            TITLE
+          </Typography>
+          {editing.field === 'title' ? (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <TextField
+                fullWidth
+                size="small"
+                value={editValues.title}
+                onChange={(e) => setEditValues(prev => ({ ...prev, title: e.target.value }))}
+                onKeyDown={(e) => handleKeyPress(e, 'title')}
+                autoFocus
+                placeholder="Enter title..."
+              />
+              <IconButton size="small" onClick={() => handleSave('title')} color="primary">
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={handleCancel}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          ) : (
+            <Box 
+              onClick={() => handleEdit('title')}
+              sx={{ 
+                cursor: 'pointer', 
+                p: 1, 
+                borderRadius: 1,
+                border: '1px dashed transparent',
+                '&:hover': { 
+                  border: '1px dashed var(--brand-maroon)',
+                  backgroundColor: 'var(--brand-maroon-100)'
+                }
+              }}
+            >
+              <Typography variant="body2" fontWeight={500}>
+                {chunk.title || 'Click to add title...'}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Summary field */}
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
+            SUMMARY
+          </Typography>
+          {editing.field === 'summary' ? (
+            <Stack direction="row" spacing={1} alignItems="flex-start">
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                size="small"
+                value={editValues.summary}
+                onChange={(e) => setEditValues(prev => ({ ...prev, summary: e.target.value }))}
+                onKeyDown={(e) => handleKeyPress(e, 'summary')}
+                autoFocus
+                placeholder="Enter summary..."
+              />
+              <Stack>
+                <IconButton size="small" onClick={() => handleSave('summary')} color="primary">
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={handleCancel}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            </Stack>
+          ) : (
+            <Box 
+              onClick={() => handleEdit('summary')}
+              sx={{ 
+                cursor: 'pointer', 
+                p: 1, 
+                borderRadius: 1,
+                border: '1px dashed transparent',
+                minHeight: '60px',
+                '&:hover': { 
+                  border: '1px dashed var(--brand-maroon)',
+                  backgroundColor: 'var(--brand-maroon-100)'
+                }
+              }}
+            >
+              <Typography variant="body2">
+                {chunk.summary || 'Click to add summary...'}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Text field */}
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
+            TEXT CONTENT
+          </Typography>
+          {editing.field === 'text' ? (
+            <Stack direction="row" spacing={1} alignItems="flex-start">
+              <TextField
+                fullWidth
+                multiline
+                rows={6}
+                size="small"
+                value={editValues.text}
+                onChange={(e) => setEditValues(prev => ({ ...prev, text: e.target.value }))}
+                onKeyDown={(e) => handleKeyPress(e, 'text')}
+                autoFocus
+                placeholder="Enter text content..."
+              />
+              <Stack>
+                <IconButton size="small" onClick={() => handleSave('text')} color="primary">
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={handleCancel}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            </Stack>
+          ) : (
+            <Box 
+              onClick={() => handleEdit('text')}
+              sx={{ 
+                cursor: 'pointer', 
+                p: 1, 
+                borderRadius: 1,
+                border: '1px dashed transparent',
+                maxHeight: '200px',
+                overflow: 'auto',
+                '&:hover': { 
+                  border: '1px dashed var(--brand-maroon)',
+                  backgroundColor: 'var(--brand-maroon-100)'
+                }
+              }}
+            >
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                {chunk.text || 'Click to add text content...'}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Stack>
+    </Paper>
+  );
+};
+
 // Themed card (maroon accents vs indigo)
 const DocumentCard = styled(Paper)(({ theme }) => ({
   position: 'relative',
@@ -87,9 +297,12 @@ const DocumentCard = styled(Paper)(({ theme }) => ({
 }));
 
 const Documents = () => {
+  const [previewFile, setPreviewFile] = useState(null); // object with { key, url? }
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState([]); // { tempId, name, progress, file }
+  const [uploading, setUploading] = useState([]); // { tempId, name, progress, file, job_id }
+  const [processingJobs, setProcessingJobs] = useState(new Set()); // Track job IDs being processed
   const [search, setSearch] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [embeddingNotes, setEmbeddingNotes] = useState('');
@@ -107,29 +320,105 @@ const Documents = () => {
   const [embeddingsOpen, setEmbeddingsOpen] = useState(false);
   const [cardMenuAnchor, setCardMenuAnchor] = useState(null); // for per-card contextual menu
   const [cardMenuFile, setCardMenuFile] = useState(null);
+  
+  // Chunks viewing state
+  const [chunksOpen, setChunksOpen] = useState(false);
+  const [selectedFileForChunks, setSelectedFileForChunks] = useState(null);
+  const [chunks, setChunks] = useState([]);
+  const [chunksLoading, setChunksLoading] = useState(false);
 
+  // Initial fetch from backend
   useEffect(() => {
-    (async () => {
-      await mockDelay(600);
-      setFiles(seedFiles);
-      setLoading(false);
-    })();
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        console.log('Loading vault files...');
+        const mapped = await listVaultFiles();
+        console.log('Vault files loaded:', mapped);
+        if (!cancelled) setFiles(mapped);
+      } catch (e) {
+        notify({ status: 'error', title: 'Load failed', description: e.message });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
+  // Job status polling effect
   useEffect(() => {
-    if (!files.length) return;
-    const timer = setInterval(() => {
-      setFiles(f => f.map(file =>
-        file.status === 'processing'
-          ? {
-              ...file,
-              status: Math.random() > 0.7 ? 'ready' : 'processing',
-              embeddings: file.status === 'processing'
-                ? (file.embeddings || 0) + Math.floor(Math.random()*300)
-                : file.embeddings
+    if (processingJobs.size === 0) return;
+    
+    const pollJobStatus = async () => {
+      const jobIds = Array.from(processingJobs);
+      for (const jobId of jobIds) {
+        try {
+          const status = await getJobStatus(jobId);
+          
+          // Update file status based on job status
+          setFiles(f => f.map(file => {
+            if (file.job_id === jobId) {
+              const updatedFile = { 
+                ...file, 
+                status: status.state === 'completed' ? 'ready' : status.state === 'failed' ? 'error' : 'processing',
+                embeddings: status.chunk_count || 0,
+                progress: typeof status.progress === 'number' ? status.progress : file.progress,
+                message: status.message || file.message,
+                stateDetail: status.state
+              };
+              
+              // If completed or failed, remove from processing jobs
+              if (status.state === 'completed' || status.state === 'failed') {
+                setProcessingJobs(jobs => {
+                  const newJobs = new Set(jobs);
+                  newJobs.delete(jobId);
+                  return newJobs;
+                });
+                
+                if (status.state === 'completed') {
+                  notify({ 
+                    status: 'success', 
+                    title: 'Processing complete', 
+                    description: `${file.key} - ${status.chunk_count} chunks created` 
+                  });
+                } else if (status.state === 'failed') {
+                  notify({ 
+                    status: 'error', 
+                    title: 'Processing failed', 
+                    description: status.error_message || `Failed to process ${file.key}` 
+                  });
+                }
+              }
+              
+              return updatedFile;
             }
-          : file
-      ));
+            return file;
+          }));
+          
+        } catch (error) {
+          console.error('Failed to get job status:', error);
+        }
+      }
+    };
+    
+    // Poll every 3 seconds
+    const timer = setInterval(pollJobStatus, 3000);
+    
+    // Initial poll
+    pollJobStatus();
+    
+    return () => clearInterval(timer);
+  }, [processingJobs, notify]);
+
+  // Simulated embedding progress loop for files flagged processing (keeping for backward compatibility)
+  useEffect(() => {
+    if (!files.some(f => f.status === 'processing' && !f.job_id)) return;
+    const timer = setInterval(() => {
+      setFiles(f => f.map(file => (file.status === 'processing' && !file.job_id)
+        ? { ...file, status: Math.random() > 0.85 ? 'ready' : 'processing', embeddings: (file.embeddings || 0) + Math.floor(Math.random()*250) }
+        : file));
     }, 2500);
     return () => clearInterval(timer);
   }, [files]);
@@ -163,21 +452,43 @@ const Documents = () => {
     const pdfs = list.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
     const rejected = list.length - pdfs.length;
     if (rejected) {
-      notify({ status:'warning', title:`${rejected} file(s) rejected`, description:'Only PDF files are allowed.' });
+      notify({ status: 'warning', title: `${rejected} file(s) rejected`, description: 'Only PDF files are allowed.' });
     }
     for (const file of pdfs) {
       const tempId = `${file.name}-${Date.now()}`;
       const uploadObj = { tempId, name: file.name, progress: 0, file };
       setUploading(u => [...u, uploadObj]);
-      for (let p=0; p<=100; p+= Math.round(10 + Math.random()*25)) {
-        await mockDelay(180 + Math.random()*220);
-        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: Math.min(p,100) } : x));
+      try {
+        // Call API (uploadVaultFile reports intermediate progress via callback)
+        const uploadResult = await uploadVaultFile(file, (p)=> setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: Math.min(85, p) } : x)) );
+        
+        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: 95, job_id: uploadResult.job_id } : x));
+        
+        // Add file to list with processing status and job_id
+        const newFile = { 
+          key: file.name, 
+          size: file.size, 
+          uploadedAt: Date.now(), 
+          status: 'processing', 
+          embeddings: 0,
+          job_id: uploadResult.job_id
+        };
+        setFiles(f => [newFile, ...f]);
+        
+        // Track the job for status polling
+        if (uploadResult.job_id) {
+          setProcessingJobs(jobs => new Set([...jobs, uploadResult.job_id]));
+        }
+        
+        setUploading(u => u.map(x => x.tempId === tempId ? { ...x, progress: 100 } : x));
+        notify({ status: 'success', title: 'Upload successful', description: `${file.name} - Processing started` });
+      } catch (err) {
+        notify({ status: 'error', title: 'Upload failed', description: err.message });
+      } finally {
+        setUploading(u => u.filter(x => x.tempId !== tempId));
       }
-      setFiles(f => [{ key: file.name, size: file.size, uploadedAt: Date.now(), status: 'processing', embeddings: 0 }, ...f]);
-      setUploading(u => u.filter(x => x.tempId !== tempId));
-      notify({ status:'success', title:'Upload started', description:`${file.name} is queued for embedding.` });
     }
-    if(e.target) e.target.value = '';
+    if (e.target) e.target.value = '';
   };
 
   const [dragActive, setDragActive] = useState(false);
@@ -196,9 +507,14 @@ const Documents = () => {
     }
   },[handleFileSelect]);
 
-  const deleteFile = (key) => {
-    setFiles(f => f.filter(x => x.key !== key));
-    notify({ status:'info', title:'Deleted', description:key });
+  const deleteFile = async (key) => {
+    try {
+      await deleteVaultFile(key);
+      setFiles(f => f.filter(x => x.key !== key));
+      notify({ status: 'success', title: 'Deleted', description: key });
+    } catch (e) {
+      notify({ status: 'error', title: 'Delete failed', description: e.message });
+    }
   };
 
   const openEmbeddings = (file) => {
@@ -210,6 +526,59 @@ const Documents = () => {
   const saveEmbeddingsMeta = () => {
     notify({ status:'success', title:'Embeddings updated', description: selectedFile?.key });
     setEmbeddingsOpen(false);
+  };
+
+  const openChunks = async (file) => {
+    setSelectedFileForChunks(file);
+    setChunksOpen(true);
+    setChunksLoading(true);
+    
+    try {
+      const result = await getVaultFileChunks(file.key);
+      setChunks(result.chunks || []);
+    } catch (error) {
+      notify({ 
+        status: 'error', 
+        title: 'Failed to load chunks', 
+        description: error.message 
+      });
+      setChunks([]);
+    } finally {
+      setChunksLoading(false);
+    }
+  };
+
+  const updateChunk = async (chunkId, updates) => {
+    try {
+      const chunkData = {
+        chunk_id: chunkId,
+        file_key: selectedFileForChunks.key,
+        ...updates
+      };
+      
+      await updateVaultChunk(chunkData);
+      
+      // Update local chunks state
+      setChunks(prevChunks => 
+        prevChunks.map(chunk => 
+          chunk.chunk_id === chunkId 
+            ? { ...chunk, ...updates }
+            : chunk
+        )
+      );
+      
+      notify({ 
+        status: 'success', 
+        title: 'Chunk updated', 
+        description: 'Changes saved successfully' 
+      });
+    } catch (error) {
+      notify({ 
+        status: 'error', 
+        title: 'Update failed', 
+        description: error.message 
+      });
+    }
   };
 
   const prettyName = (key) => (key ? key.replace(/_/g,' ') : '');
@@ -333,12 +702,11 @@ const Documents = () => {
             <IconButton
               color="primary"
               size="small"
-              onClick={()=>{
+              onClick={async ()=>{
                 setLoading(true);
-                mockDelay(500).then(()=>{
-                  setLoading(false);
-                  notify({status:'success', title:'Data refreshed'});
-                });
+                try { const mapped = await listVaultFiles(); setFiles(mapped); notify({status:'success', title:'Data refreshed'}); }
+                catch(e){ notify({ status:'error', title:'Refresh failed', description:e.message }); }
+                finally { setLoading(false); }
               }}
               sx={{
                 color:'var(--brand-maroon)',
@@ -443,6 +811,16 @@ const Documents = () => {
                           <span className="meta-pill vectors">{file.embeddings.toLocaleString()}</span>
                         ) : null}
                       </div>
+                      {file.status === 'processing' && typeof file.progress === 'number' && (
+                        <Box sx={{ mt: 1 }}>
+                          <LinearProgress variant="determinate" value={Math.min(100, Math.max(0, file.progress))} sx={{ height: 6, borderRadius: 999 }} />
+                          {file.message && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display:'block', mt: 0.5 }}>
+                              {file.message}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
                     </Box>
 
                     <IconButton
@@ -464,28 +842,49 @@ const Documents = () => {
                       justifyContent: "space-between",
                     }}
                   >
-                    {/* Edit Embeddings (outlined maroon) */}
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={()=>openEmbeddings(file)}
-                      sx={{
-                        textTransform:'none',
-                        fontSize:12,
-                        px:1.7,
-                        fontWeight:700,
-                        borderColor:'rgba(122,14,42,0.45)',
-                        bgcolor:'rgba(122,14,42,0.08)',
-                        color:'var(--brand-maroon)',
-                        '&:hover':{
-                          borderColor:'rgba(122,14,42,0.65)',
-                          bgcolor:'rgba(122,14,42,0.14)'
-                        }
-                      }}
-                      startIcon={<EditIcon sx={{ fontSize:16 }} />}
-                    >
-                      Edit Embeddings
+                    {/* View File (outlined maroon) */}
+
+                    <Button size="small" variant="contained" onClick={async ()=>{
+                      setPreviewLoading(true);
+                      try {
+                        const data = await getVaultFileUrl(file.key);
+                        setPreviewFile({ ...file, url: data.url, expires_in: data.expires_in });
+                        notify({ status:'info', title:'File ready', description:`URL expires in ${data.expires_in}s` });
+                      } catch (e) {
+                        notify({ status:'error', title:'Open failed', description: e.message });
+                      } finally {
+                        setPreviewLoading(false);
+                      }
+                    }} sx={{textTransform:'none',fontSize:12,fontWeight:700,px:1.6,whiteSpace:'nowrap',background:'linear-gradient(90deg,#a3122d,#7a0e2a)',color:'#fff','&:hover':{background:'linear-gradient(90deg,#7a0e2a,#5e0b20)'}}} disabled={previewLoading}>
+                      {previewLoading ? 'Loading...' : 'View\u00A0File'}
                     </Button>
+
+                    {/* View Chunks (only show if processing is complete) */}
+                    {file.status === 'ready' && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => openChunks(file)}
+                        sx={{
+                          textTransform:'none',
+                          fontSize:12,
+                          px:1.6,
+                          whiteSpace:'nowrap',
+                          fontWeight:700,
+                          borderColor:'rgba(122,14,42,0.45)',
+                          bgcolor:'rgba(122,14,42,0.08)',
+                          color:'var(--brand-maroon)',
+                          '&:hover':{
+                            borderColor:'rgba(122,14,42,0.65)',
+                            bgcolor:'rgba(122,14,42,0.14)'
+                          }
+                        }}
+                        startIcon={<DataObjectIcon sx={{ fontSize:16 }} />}
+                      >
+                        Edit Chunks
+                      </Button>
+                    )}
+
 
                     {/* Delete */}
                     <Button
@@ -660,6 +1059,104 @@ const Documents = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Chunks Dialog */}
+      <Dialog
+        open={chunksOpen}
+        onClose={() => setChunksOpen(false)}
+        fullWidth
+        maxWidth="lg"
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 400 }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #a3122d, #7a0e2a)',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <Typography variant="h6" fontWeight={600}>
+            Document Chunks: {selectedFileForChunks?.key}
+          </Typography>
+          <IconButton onClick={() => setChunksOpen(false)} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent dividers sx={{ p: 0, height: '70vh' }}>
+          {chunksLoading ? (
+            <Stack alignItems="center" justifyContent="center" height="100%" spacing={2}>
+              <LinearProgress sx={{ width: 260 }} />
+              <Typography variant="body2" color="text.secondary">Loading chunks...</Typography>
+            </Stack>
+          ) : chunks.length > 0 ? (
+            <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
+              <Stack spacing={2}>
+                {chunks.map((chunk, index) => (
+                  <ChunkCard 
+                    key={chunk.chunk_id} 
+                    chunk={chunk} 
+                    index={index}
+                    onUpdate={updateChunk}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          ) : (
+            <Stack alignItems="center" justifyContent="center" height="100%" spacing={2}>
+              <DataObjectIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
+              <Typography variant="h6" color="text.secondary">No chunks found</Typography>
+              <Typography variant="body2" color="text.secondary">
+                This document hasn't been processed yet or processing failed.
+              </Typography>
+            </Stack>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 2, backgroundColor: 'grey.50' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 'auto' }}>
+            {chunks.length} chunks • Click on any field to edit
+          </Typography>
+          <Button onClick={() => setChunksOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+    {/*  PDF Preview Dialog */}
+      <Dialog
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        fullWidth
+        maxWidth="lg"
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 300 }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" fontWeight={600}>
+            {previewFile?.key}
+          </Typography>
+          <IconButton onClick={() => setPreviewFile(null)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0, height: '80vh', position:'relative' }}>
+          {previewFile?.url ? (
+            <iframe
+              src={previewFile.url}
+              title={previewFile.key}
+              width="100%"
+              height="100%"
+              style={{ border: 'none' }}
+            />
+          ) : (
+            <Stack alignItems="center" justifyContent="center" height="100%" spacing={2}>
+              <LinearProgress sx={{ width: 260 }} />
+              <Typography variant="body2" color="text.secondary">Fetching file...</Typography>
+            </Stack>
+          )}
+        </DialogContent>
+      </Dialog>
       {/* Card context menu */}
       <Popover
         open={Boolean(cardMenuAnchor)}
@@ -669,6 +1166,11 @@ const Documents = () => {
         transformOrigin={{ vertical:'top', horizontal:'right' }}
       >
         <Stack py={1} sx={{ minWidth:180 }}>
+          {cardMenuFile?.status === 'ready' && cardMenuFile?.embeddings > 0 && (
+            <MenuItem onClick={()=> { if(cardMenuFile) openChunks(cardMenuFile); setCardMenuAnchor(null); }}>
+              <DataObjectIcon fontSize="small" style={{marginRight:8}} /> View Chunks
+            </MenuItem>
+          )}
           <MenuItem onClick={()=> { if(cardMenuFile) openEmbeddings(cardMenuFile); setCardMenuAnchor(null); }}>
             <EditIcon fontSize="small" style={{marginRight:8}} /> Edit Embeddings
           </MenuItem>
