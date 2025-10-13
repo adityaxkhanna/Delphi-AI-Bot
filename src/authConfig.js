@@ -3,7 +3,7 @@ const msalConfig = {
     clientId: import.meta.env.VITE_AAD_CLIENT_ID,
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_AAD_TENANT_ID}`,
     redirectUri: "https://localhost:3000",        
-    postLogoutRedirectUri: "http://localhost:3000",
+    postLogoutRedirectUri: "https://localhost:3000",
   },
   cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false },
 };

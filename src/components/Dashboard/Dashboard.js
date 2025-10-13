@@ -69,7 +69,9 @@ const Dashboard = ({ children }) => {
           </div>
           <button 
             className="sign-out-button"
-            onClick={handleSignOut}
+            onClick={() => handleSignOut()}
+
+
             aria-label="Sign out"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
