@@ -17,7 +17,7 @@ export default defineConfig({
               key: fs.readFileSync("./localhost-key.pem"),
               cert: fs.readFileSync("./localhost.pem"),
             }
-          : true, // fallback to http if no cert
+          : false, // fallback to http if no cert
         host: "localhost",
         port: 3000,
         strictPort: true,
