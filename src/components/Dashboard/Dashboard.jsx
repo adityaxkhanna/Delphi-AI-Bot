@@ -1,9 +1,8 @@
 
-
-// export default Dashboard;
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../../contexts/DarkModeContext.jsx';
+import { useMsal } from '@azure/msal-react';
 import Sidebar from './Sidebar.jsx';
 import './Dashboard.css';
 import SearchBar from "./SearchBar.jsx";
@@ -16,6 +15,9 @@ const Dashboard = ({ children }) => {
     () => typeof window !== 'undefined' && window.innerWidth <= 768
   );
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { instance, accounts } = useMsal();
 
   useEffect(() => {
     const handleResize = () => {
@@ -27,18 +29,32 @@ const Dashboard = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const toggleSidebar = () => {
     if (isMobile) setMobileSidebarOpen(o => !o);
     else setSidebarCollapsed(c => !c);
   };
 
-  const handleSignOut = () => {
-    console.log('Sign out clicked');
-    navigate('/login');
-  };
+const handleSignOut = () => {
+  try {
+    const account = instance.getActiveAccount() || accounts[0];
+    console.log("🧭 Logging out account:", account);
+
+    // Use non-await call to prevent React freeze
+    instance.logoutRedirect({
+      account,
+      postLogoutRedirectUri: window.location.origin + "/login",
+    });
+  } catch (err) {
+    console.error("Logout failed:", err);
+    navigate("/login", { replace: true });
+  }
+};
+
+
+
+
+
+
 
   return (
     <div className="dashboard">
@@ -127,20 +143,17 @@ const Dashboard = ({ children }) => {
         </header>
 
         <main className="dashboard-main">
-          <div className="main-content">
-            {children}
-          </div>
+          <div className="main-content">{children}</div>
 
-          {/* Show RecentActivity only on Chat screen */}
           {location.pathname.startsWith("/dashboard/chat") && (
             <RecentActivity
               chats={[
                 { id: 1, title: "Iron eligibility trends", when: "2h ago" },
-                { id: 2, title: "Plasma donation data", when: "Yesterday" }
+                { id: 2, title: "Plasma donation data", when: "Yesterday" },
               ]}
               docs={[
                 { id: "d1", name: "Donor Policy Overview.pdf", when: "2d ago" },
-                { id: "d2", name: "Consent Guidelines 2024", when: "5d ago" }
+                { id: "d2", name: "Consent Guidelines 2024", when: "5d ago" },
               ]}
             />
           )}
