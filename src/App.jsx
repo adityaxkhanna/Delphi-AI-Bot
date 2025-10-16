@@ -1,6 +1,6 @@
-
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { DarkModeProvider } from "./contexts/DarkModeContext.jsx";
 import DashboardPage from "./pages/Dashboard/DashboardPage.jsx";
 import Login from "./pages/auth/Login.jsx";
 
@@ -14,7 +14,7 @@ function LogoutNow() {
   useEffect(() => {
     instance.logoutRedirect({
       account: instance.getActiveAccount() || accounts[0],
-      postLogoutRedirectUri: window.location.origin, // https://localhost:3000
+      postLogoutRedirectUri: window.location.origin, // e.g., https://localhost:3000
     });
   }, [instance, accounts]);
   return null;
@@ -22,39 +22,41 @@ function LogoutNow() {
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public route */}
-        <Route path="/login" element={<Login />} />
+    <DarkModeProvider>
+      <Router>
+        <Routes>
+          {/* Public route */}
+          <Route path="/login" element={<Login />} />
 
-        {/* Protected dashboard */}
-        <Route
-          path="/dashboard/*"
-          element={
-            <MsalAuthenticationTemplate
-              interactionType={InteractionType.Redirect}
-              authenticationRequest={{
-                ...loginRequest,
-                redirectUri: window.location.origin, // consistent redirect
-              }}
-              loadingComponent={<div style={{ padding: 24 }}>Signing you in…</div>}
-              errorComponent={({ error }) => (
-                <div style={{ padding: 24, color: "crimson" }}>
-                  Auth error: {error?.message}
-                </div>
-              )}
-            >
-              <DashboardPage />
-            </MsalAuthenticationTemplate>
-          }
-        />
+          {/* Protected dashboard */}
+          <Route
+            path="/dashboard/*"
+            element={
+              <MsalAuthenticationTemplate
+                interactionType={InteractionType.Redirect}
+                authenticationRequest={{
+                  ...loginRequest,
+                  redirectUri: window.location.origin, // consistent redirect
+                }}
+                loadingComponent={<div style={{ padding: 24 }}>Signing you in…</div>}
+                errorComponent={({ error }) => (
+                  <div style={{ padding: 24, color: "crimson" }}>
+                    Auth error: {error?.message}
+                  </div>
+                )}
+              >
+                <DashboardPage />
+              </MsalAuthenticationTemplate>
+            }
+          />
 
-        {/* Logout route (works from anywhere) */}
-        <Route path="/logout" element={<LogoutNow />} />
+          {/* Logout route */}
+          <Route path="/logout" element={<LogoutNow />} />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
+    </DarkModeProvider>
   );
 }
