@@ -27,6 +27,8 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { AnimatePresence, motion } from 'framer-motion';
 import { listVaultFiles, uploadVaultFile, deleteVaultFile, getVaultFileUrl, getJobStatus, getVaultFileChunks, updateVaultChunk } from '../../../api/vaultFiles';
+import PaginationBar from './PaginationBar.jsx';
+import { usePage } from './usePage.js';
 
 const formatBytes = (bytes) => {
   if (!bytes && bytes !== 0) return '-';
@@ -41,6 +43,14 @@ const timeAgo = (ts) => {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours/24); return `${days}d ago`;
 };
+
+const normalize = (s = '') =>
+  s
+    .toLowerCase()
+    .replace(/\.(pdf|docx?)$/i, '')   // drop extension
+    .replace(/[_-]+/g, ' ')           // underscores/dashes -> spaces
+    .replace(/\s+/g, ' ')             // collapse spaces
+    .trim();
 
 const MotionPaper = motion(Paper);
 
@@ -423,10 +433,19 @@ const Documents = () => {
     return () => clearInterval(timer);
   }, [files]);
 
-  const filtered = useMemo(
-    () => files.filter(f => f.key.toLowerCase().includes(search.toLowerCase())),
-    [files, search]
-  );
+  const filtered = useMemo(() => {
+    const q = normalize(search);
+    if (!q) return files;
+    return files.filter(f => normalize(f.key).includes(q));
+  }, [files, search]);
+
+  const { page, size, setPage, setSize, paginate, totalPagesOf } = usePage(6);
+
+  // keep page valid when list shrinks (delete/search)
+  useEffect(() => {
+    const total = totalPagesOf(filtered.length);
+    if (page > total) setPage(total);
+  }, [filtered.length, page, setPage, totalPagesOf]);
 
   const sortFiles = (mode) => {
     setFiles(f => {
@@ -442,6 +461,8 @@ const Documents = () => {
     });
     setAnchorEl(null);
     notify({ status:'info', title:'Sorted', description: mode });
+    // reset to first page after sort
+    setPage(1);
   };
 
   const triggerUpload = () => fileInputRef.current?.click();
@@ -690,7 +711,7 @@ const Documents = () => {
               size="small"
               placeholder="Search documents"
               value={search}
-              onChange={e=>setSearch(e.target.value)}
+              onChange={e=>{ setSearch(e.target.value); setPage(1); }}
               sx={{ width:{ xs:'100%', sm:340 } }}
               InputProps={{
                 startAdornment:<InputAdornment position="start"><SearchIcon fontSize='small' /></InputAdornment>
@@ -762,8 +783,9 @@ const Documents = () => {
               ))}
             </div>
           ) : filtered.length ? (
+            <>
             <div className="documents-grid">
-              {filtered.map(file => (
+              {paginate(filtered).map(file => (
                 <MotionPaper
                   key={file.key}
                   component={DocumentCard}
@@ -901,6 +923,15 @@ const Documents = () => {
                 </MotionPaper>
               ))}
             </div>
+            <PaginationBar
+              page={page}
+              totalPages={totalPagesOf(filtered.length)}
+              onChange={setPage}
+              size={size}
+              onSizeChange={setSize}
+              sizes={[6, 9, 12, 18]}
+            />
+            </>
           ) : (
             <Stack alignItems="center" justifyContent="center" py={12} spacing={2} sx={{ opacity:.85 }}>
               <AutoAwesomeIcon sx={{ fontSize:84, color:'text.disabled' }} />
