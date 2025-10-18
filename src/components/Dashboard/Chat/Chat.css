@@ -135,6 +135,44 @@
   border:1px solid #fecaca; border-radius:10px; padding:.5rem .75rem;
 }
 
+/* Feedback Link */
+.feedback-link-container {
+  margin-top: 1rem;
+  text-align: center;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.feedback-link {
+  background: transparent;
+  border: 1px solid var(--brand-maroon);
+  color: var(--brand-maroon);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.feedback-link:hover {
+  background: var(--brand-maroon);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+body.dark-mode .feedback-link {
+  border-color: var(--brand-maroon);
+  color: var(--brand-maroon);
+
+}
+
+body.dark-mode .feedback-link:hover {
+  background: var(--brand-maroon);
+  color: #fff;
+}
+
 /* =========================
    Responsive Design
    ========================= */

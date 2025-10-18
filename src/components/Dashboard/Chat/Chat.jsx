@@ -3,6 +3,7 @@ import { useDarkMode } from '../../../contexts/DarkModeContext.jsx';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
 import './Chat.css';
+import FeedbackForm from './FeedbackForm';
 
 const Chat = () => {
   const { isDarkMode } = useDarkMode();
@@ -10,6 +11,8 @@ const Chat = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [chatCompleted, setChatCompleted] = useState(false);
   const messagesEndRef = useRef(null);
   const abortRef = useRef(null);
 
@@ -74,6 +77,9 @@ const Chat = () => {
         liked: null
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Mark chat as completed after assistant response
+      setChatCompleted(true);
     } catch (err) {
       console.error(err);
       setErrorMessage('There was an issue getting a response. Please try again.');
@@ -87,6 +93,20 @@ const Chat = () => {
 
   const handleStop = () => {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; setIsLoading(false); }
+  };
+  const handleFeedbackSubmit = (feedbackData) => {
+    console.log('Feedback submitted:', feedbackData);
+    // Here you would typically send the feedback to your backend
+    // Don't close the form immediately - let the FeedbackForm handle the confirmation screen
+  };
+
+  const handleFeedbackCancel = () => {
+    setShowFeedbackForm(false);
+    setChatCompleted(false); // Reset for next chat session
+  };
+
+  const handleShowFeedback = () => {
+    setShowFeedbackForm(true);
   };
 
   return (
@@ -155,6 +175,25 @@ const Chat = () => {
         )}
       </form>
       {errorMessage && (<div className="error-banner" role="alert">{errorMessage}</div>)}
+      {/* Feedback Link - appears after chat completion */}
+      {chatCompleted && !showFeedbackForm && (
+        <div className="feedback-link-container">
+          <button 
+            onClick={handleShowFeedback}
+            className="feedback-link"
+            type="button"
+          >
+            Provide Feedback
+          </button>
+        </div>
+      )}
+      
+      {/* Feedback Form Modal */}
+      <FeedbackForm
+        isVisible={showFeedbackForm}
+        onSubmit={handleFeedbackSubmit}
+        onCancel={handleFeedbackCancel}
+      />
     </div>
   );
 };

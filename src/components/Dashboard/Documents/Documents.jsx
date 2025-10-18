@@ -1342,7 +1342,7 @@ const Documents = () => {
               '&:hover': { backgroundColor: 'rgba(239,68,68,0.1)' }
             }}
           >
-            <DeleteIcon fontSize="small" style={{marginRight:8}} /> Deleten
+            <DeleteIcon fontSize="small" style={{marginRight:8}} /> Delete
           </MenuItem>
         </Stack>
       </Popover>
